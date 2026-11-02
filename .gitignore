@@ -1,0 +1,13 @@
+# Rust build outputs
+/target/
+**/*.rs.bk
+
+# Node / TypeScript build & cache outputs
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Runtime & temporary vaults
+.vault-tmp/
+*.tmp
+.DS_Store
