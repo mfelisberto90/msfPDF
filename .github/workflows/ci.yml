@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Security Lint, Rust & TypeScript Parity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12 for Security Invariant Gate
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run architectural & security invariant linter
+        run: python3 scripts/security-lint.py
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry and build artefacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy strict lints
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run Rust unit & integration tests
+        run: cargo test --workspace
+
+      - name: Build hardened release CLI & smoke-render canonical JSON specs
+        run: |
+          chmod +x scripts/build-release.sh
+          ./scripts/build-release.sh -p msfpdf-cli
+          ./target/release/msfpdf render --in examples/uk-b2b-invoice.json --out /tmp/uk-invoice.pdf
+          ./target/release/msfpdf render --in examples/commercial-contract-multipage.json --out /tmp/contract.pdf
+          ./target/release/msfpdf render --in examples/pos-thermal-receipt.json --out /tmp/thermal.pdf
+          ./target/release/msfpdf bench --iterations 1000
+
+      - name: Set up Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install TypeScript devDependencies (0 runtime deps)
+        run: npm ci
+
+      - name: Run strict TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run TypeScript test suite
+        run: npm run test:ts
