@@ -1,0 +1,16 @@
+[package]
+name = "msfpdf-core"
+description = "Sub-millisecond zero-rendering-dependency %PDF-1.4 vector document engine, WinAnsi octal encoder, pure vector QR generator, and multi-tenant 0600 vault"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+getrandom.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true
