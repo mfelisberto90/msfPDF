@@ -1,0 +1,19 @@
+[package]
+name = "msfpdf-cli"
+description = "Command-line JSON-to-%PDF-1.4 compiler, stdin/stdout pipe adapter, and latency benchmark runner for msfPDF"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "msfpdf"
+path = "src/main.rs"
+
+[dependencies]
+msfpdf-core = { path = "../msfpdf-core" }
+serde_json.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc.workspace = true

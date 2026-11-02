@@ -1,0 +1,111 @@
+{
+  "page_format": "a4",
+  "theme": "emerald_editorial",
+  "metadata": {
+    "issuer_name": "Meridian Urban Advisory S.A.",
+    "document_code": "#CTR-8820-4419",
+    "issued_at_label": "02/11/2026",
+    "page_counter_template": "Página {current} de {total}"
+  },
+  "continuation_header": {
+    "title": "Meridian Urban Advisory S.A.",
+    "subtitle": "CONTINUAÇÃO DO INSTRUMENTO COMERCIAL E QUADRO DE CLÁUSULAS"
+  },
+  "blocks": [
+    {
+      "type": "hero_header",
+      "kicker": "INSTRUMENTO PARTICULAR DE PROPOSTA COMERCIAL • MULTILINGUAL WINANSI",
+      "title": "Meridian Urban Advisory S.A.",
+      "subtitle": "Estruturação Patrimonial, Locação Corporativa e Governança Contratual",
+      "badge_label": "PROTOCOLO CRIPTOGRÁFICO",
+      "badge_code": "#CTR-8820-4419",
+      "badge_meta": "Emissão: 02/11/2026 • Validade: 15d"
+    },
+    {
+      "type": "bento_grid",
+      "columns": 2,
+      "cards": [
+        {
+          "primary_label": "PROPONENTE / LOCATÁRIA",
+          "primary_value": "Vanguard Engenharia & Logística Ltda.",
+          "secondary_label": "REPRESENTANTE LEGAL",
+          "secondary_value": "Dr. Henrique Álvares Corrêa"
+        },
+        {
+          "primary_label": "CONSULTORIA / ESTRUTURAÇÃO",
+          "primary_value": "Meridian Urban Advisory S.A.",
+          "secondary_label": "UNIDADE DE NEGÓCIO",
+          "secondary_value": "São Paulo • Lisboa • Zürich (€ / R$)"
+        }
+      ]
+    },
+    {
+      "type": "section_heading",
+      "title": "1. ESPECIFICAÇÃO TÉCNICA DAS UNIDADES CORPORATIVAS"
+    },
+    {
+      "type": "data_table",
+      "zebra": true,
+      "columns": [
+        { "header": "ATIVO CORPORATIVO", "weight": 2.6, "align": "left", "bold_values": true },
+        { "header": "BLOCO", "weight": 0.9, "align": "center", "bold_values": true },
+        { "header": "ÁREA PRIVATIVA", "weight": 1.2, "align": "right", "bold_values": false },
+        { "header": "VALOR MENSAL", "weight": 1.3, "align": "right", "bold_values": true }
+      ],
+      "rows": [
+        ["Torre Corporativa Atlântica — 14º Andar", "B-14", "420,00 m²", "€12,600.00"],
+        ["Anexo Logístico Refrigerado — Doca 3", "D-03", "180,00 m²", "€3,900.00"]
+      ]
+    },
+    {
+      "type": "section_heading",
+      "title": "2. QUADRO FINANCEIRO CONSOLIDADO"
+    },
+    {
+      "type": "financial_summary",
+      "currency": "EUR",
+      "rows": [
+        { "label": "Locação Mensal Base (600,00 m² de área útil)", "amount_minor": 1650000, "emphasize": true },
+        { "label": "Garantia Caução Inicial (3x locação vigente)", "amount_minor": 4950000, "emphasize": true },
+        { "label": "Índice Anual de Recomposição Monetária", "text_value": "HICP Eurozone • Vigência 60 meses", "emphasize": false }
+      ]
+    },
+    {
+      "type": "callout_banner",
+      "title": "COMPROMISSO MENSAL CONSOLIDADO",
+      "subtitle": "Reserva comercial válida por 15 dias corridos mediante confirmação documental",
+      "right_value": "€16,500.00 / mês",
+      "tone": "accent"
+    },
+    {
+      "type": "section_heading",
+      "title": "3. CONDIÇÕES GERAIS E CLÁUSULAS DE GOVERNANÇA (PAGINAÇÃO AUTOMÁTICA)"
+    },
+    {
+      "type": "clause_list",
+      "paragraphs": [
+        "1ª Cláusula — O presente instrumento caracteriza intenção vinculante de reserva corporativa, condicionada à auditoria jurídica societária e comprovação de poderes de representação.",
+        "2ª Cláusula — Todas as importâncias financeiras deste quadro são processadas em unidades inteiras de centavos, eliminando divergências de arredondamento binário em conciliações contábeis.",
+        "3ª Cláusula — A entrega das chaves ocorrerá em até 10 (dez) dias úteis após a assinatura definitiva e constituição integral da garantia locatícia estipulada na Seção 2.",
+        "4ª Cláusula — As benfeitorias necessárias introduzidas pela proponente serão indenizáveis mediante aprovação prévia por escrito do memorial descritivo de engenharia.",
+        "5ª Cláusula — O descumprimento dos prazos de implantação operacional não suspenderá a fluência regular dos encargos condominiais e tributários incidentes sobre a área útil de 600,00 m².",
+        "6ª Cláusula — Ambas as partes obrigam-se ao cumprimento estrito das normas de proteção de dados pessoais (GDPR / LGPD), mantendo sigilo absoluto sobre informações comerciais.",
+        "7ª Cláusula — É vedada a cessão parcial ou sublocação desautorizada a terceiros estranhos ao grupo econômico da proponente sem anuência expressa da administradora.",
+        "8ª Cláusula — Os seguros patrimoniais contra incêndio, responsabilidade civil e lucros cessantes deverão permanecer ativos durante toda a vigência de 60 (sessenta) meses.",
+        "9ª Cláusula — Qualquer tolerância quanto a eventuais atrasos não implicará novação, renúncia de direitos ou alteração tácita das condições pactuadas neste instrumento.",
+        "10ª Cláusula — As notificações extrajudiciais serão consideradas válidas quando encaminhadas com aviso de recebimento físico ou assinatura criptográfica qualificada.",
+        "11ª Cláusula — Na hipótese de rescisão antecipada imotivada antes do 24º mês, incidirá multa compensatória proporcional ao tempo restante de cumprimento contratual.",
+        "12ª Cláusula — Fica eleito o foro empresarial competente com renúncia expressa a qualquer outro, por mais privilegiado que seja, para dirimir dúvidas oriundas desta minuta."
+      ]
+    },
+    {
+      "type": "signature_grid",
+      "heading": "4. FORMALIZAÇÃO E ASSINATURAS DAS PARTES",
+      "signers": [
+        { "role_label": "PROPONENTE / LOCATÁRIA", "party_name": "Vanguard Engenharia Ltda." },
+        { "role_label": "CONSULTORIA RESPONSÁVEL", "party_name": "Meridian Urban Advisory S.A." },
+        { "role_label": "TESTEMUNHA INSTRUMENTÁRIA", "party_name": "Departamento Jurídico Corporativo" }
+      ]
+    }
+  ]
+}
