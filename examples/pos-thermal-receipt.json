@@ -1,0 +1,47 @@
+{
+  "page_format": "thermal80mm",
+  "theme": "crimson_compliance",
+  "metadata": {
+    "issuer_name": "Highland Artisan Kitchen",
+    "document_code": "ORD-9042",
+    "issued_at_label": "02 Nov 2026 19:45",
+    "page_counter_template": "Slip {current}/{total}"
+  },
+  "blocks": [
+    {
+      "type": "hero_header",
+      "kicker": "INSTANT ORDER & ALLERGEN TICKET",
+      "title": "Highland Artisan Kitchen",
+      "subtitle": "Royal Mile • Edinburgh EH1 1QS",
+      "badge_code": "ORDER #ORD-9042 • PAID"
+    },
+    {
+      "type": "callout_banner",
+      "title": "UK NATASHA'S LAW ALLERGEN NOTICE",
+      "subtitle": "Declared: TREE NUT & SESAME ALLERGY",
+      "right_value": "SANITISE PREP BENCH",
+      "tone": "danger"
+    },
+    {
+      "type": "section_heading",
+      "title": "ORDER ITEMS"
+    },
+    {
+      "type": "key_value_list",
+      "dashed_dividers": true,
+      "rows": [
+        { "label": "2x Smoked Haddock Cullen Skink", "value": "£19.00", "emphasize": true },
+        { "label": "1x Roasted Root Vegetable Tart", "value": "£13.50", "emphasize": true },
+        { "label": "2x Sparkling Elderflower Pressé", "value": "£7.00", "emphasize": false },
+        { "label": "Service & Packaging", "value": "£0.00", "emphasize": false },
+        { "label": "TOTAL PAID (VISA CONTACTLESS)", "value": "£39.50", "emphasize": true }
+      ]
+    },
+    {
+      "type": "qr_verification",
+      "payload": "https://kitchen.example.co.uk/receipt/ORD-9042",
+      "headline": "DIGITAL VAT & ALLERGEN TRACE",
+      "details": "Scan for full ingredient traceability under UK FSA 14-allergen rules."
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "page_format": "a4",
+  "theme": "navy_fintech",
+  "metadata": {
+    "issuer_name": "Caledonia Cloud Systems Ltd",
+    "document_code": "#INV-2026-8841",
+    "issued_at_label": "02 Nov 2026",
+    "footer_notice": "Caledonia Cloud Systems Ltd (SC774102) • Registered in Scotland • Edinburgh EH2 4AN",
+    "page_counter_template": "Page {current} of {total}"
+  },
+  "blocks": [
+    {
+      "type": "hero_header",
+      "kicker": "COMMERCIAL TAX INVOICE • UK VAT REG GB409281920",
+      "title": "Caledonia Cloud Systems Ltd",
+      "subtitle": "Dedicated Single-Tenant Infrastructure & Managed Security Operations",
+      "badge_label": "CRYPTOGRAPHIC REF",
+      "badge_code": "#INV-2026-8841",
+      "badge_meta": "Issued: 02/11/2026 • Terms: Net 30"
+    },
+    {
+      "type": "bento_grid",
+      "columns": 2,
+      "cards": [
+        {
+          "primary_label": "BILLED CUSTOMER",
+          "primary_value": "Northbridge Logistics PLC",
+          "secondary_label": "ACCOUNTS PAYABLE CONTACT",
+          "secondary_value": "Eleanor Vance • PO-99412-UK"
+        },
+        {
+          "primary_label": "SUPPLIER & SETTLEMENT",
+          "primary_value": "Caledonia Cloud Systems Ltd",
+          "secondary_label": "FASTER PAYMENTS / IBAN",
+          "secondary_value": "Sort 80-22-60 • Acc 10948271 (GBP)"
+        }
+      ]
+    },
+    {
+      "type": "section_heading",
+      "title": "1. INFRASTRUCTURE & MANAGED SERVICES SCHEDULE"
+    },
+    {
+      "type": "data_table",
+      "zebra": true,
+      "columns": [
+        { "header": "LINE ITEM & REGION", "weight": 3.1, "align": "left", "bold_values": true },
+        { "header": "BILLING PERIOD", "weight": 1.3, "align": "center", "bold_values": false },
+        { "header": "QTY", "weight": 0.6, "align": "center", "bold_values": false },
+        { "header": "NET (GBP)", "weight": 1.2, "align": "right", "bold_values": true }
+      ],
+      "rows": [
+        ["Dedicated Bare-Metal Compute Nodes (eu-west-2)", "Nov 2026", "4", "£3,200.00"],
+        ["Encrypted Offsite Disaster Recovery Vault (10 TB)", "Nov 2026", "1", "£450.00"],
+        ["24/7 SOC Telemetry & Automated Incident Retainer", "Nov 2026", "1", "£850.00"]
+      ]
+    },
+    {
+      "type": "section_heading",
+      "title": "2. TAXATION & SETTLEMENT SUMMARY"
+    },
+    {
+      "type": "financial_summary",
+      "currency": "GBP",
+      "rows": [
+        { "label": "Net Goods & Services Subtotal (Excl. VAT)", "amount_minor": 450000, "emphasize": true },
+        { "label": "Committed Annual Volume Rebate (5.0%)", "amount_minor": -22500, "emphasize": false },
+        { "label": "Taxable Supply Basis", "amount_minor": 427500, "emphasize": false },
+        { "label": "UK Standard Rate VAT (20.0%)", "amount_minor": 85500, "emphasize": true }
+      ]
+    },
+    {
+      "type": "callout_banner",
+      "title": "TOTAL AMOUNT PAYABLE (GBP)",
+      "subtitle": "Please quote reference #INV-2026-8841 on Faster Payments or CHAPS remittance",
+      "right_value": "£5,130.00",
+      "tone": "accent"
+    },
+    {
+      "type": "qr_verification",
+      "payload": "https://verify.caledoniacloud.example/inv/INV-2026-8841?sha256=9f8a7b6c4410ee29",
+      "headline": "CRYPTOGRAPHIC RECEIPT & REMITTANCE VERIFICATION",
+      "details": "Scan this zero-dependency vector QR code to verify invoice authenticity, VAT breakdown, and real-time settlement status.",
+      "code_display": "DIGEST: SHA256-9F8A-7B6C-4410-EE29"
+    },
+    {
+      "type": "section_heading",
+      "title": "3. STATUTORY REMITTANCE NOTES"
+    },
+    {
+      "type": "clause_list",
+      "paragraphs": [
+        "• All monetary figures are computed in exact integer minor units (pence) with zero binary floating-point rounding drift.",
+        "• Late commercial settlements are subject to statutory interest and recovery compensation under the Late Payment of Commercial Debts (Interest) Act 1998."
+      ]
+    },
+    {
+      "type": "signature_grid",
+      "heading": "4. AUTHORISED SIGN-OFF",
+      "signers": [
+        { "role_label": "ISSUED BY (FINANCE DIRECTOR)", "party_name": "Caledonia Cloud Systems Ltd" },
+        { "role_label": "ACCEPTED BY (CLIENT AP)", "party_name": "Northbridge Logistics PLC" }
+      ]
+    }
+  ]
+}
