@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mfelisberto90.github.io/msfPDF/schemas/document-spec.schema.json",
+  "title": "msfPDF DocumentSpec",
+  "description": "Declarative JSON layout specification for msfPDF — compiles identically across Rust, Web-Standard TypeScript, and the msfpdf CLI into deterministic 7-bit ASCII %PDF-1.4 documents with Latin, Russian Cyrillic, and connected Arabic RTL support.",
+  "type": "object",
+  "required": ["metadata", "blocks"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "page_format": {
+      "type": "string",
+      "enum": ["a4", "letter", "thermal80mm"],
+      "default": "a4",
+      "description": "Physical page medium: A4 (595.28x841.89 pt), US Letter (612x792 pt), or 80 mm POS Thermal Slip (226.77x510 pt)."
+    },
+    "theme": {
+      "type": "string",
+      "enum": ["navy_fintech", "emerald_editorial", "slate_minimal", "crimson_compliance"],
+      "default": "navy_fintech"
+    },
+    "accent_hex_override": {
+      "type": "string",
+      "pattern": "^#?[0-9a-fA-F]{6}$",
+      "description": "Optional 6-digit #RRGGBB accent override."
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["issuer_name", "document_code", "issued_at_label"],
+      "additionalProperties": false,
+      "properties": {
+        "issuer_name": { "type": "string", "minLength": 1 },
+        "document_code": { "type": "string", "minLength": 1 },
+        "issued_at_label": { "type": "string", "minLength": 1 },
+        "footer_notice": { "type": "string" },
+        "page_counter_template": {
+          "type": "string",
+          "default": "Page {current} of {total}"
+        }
+      }
+    },
+    "continuation_header": {
+      "type": "object",
+      "required": ["title", "subtitle"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/DocumentBlock" }
+    }
+  },
+  "$defs": {
+    "Currency": {
+      "type": "string",
+      "enum": ["GBP", "EUR", "USD", "BRL", "JPY", "RUB", "AED", "SAR"]
+    },
+    "TextAlign": {
+      "type": "string",
+      "enum": ["left", "center", "right"]
+    },
+    "BannerTone": {
+      "type": "string",
+      "enum": ["accent", "warning", "danger", "neutral"]
+    },
+    "DocumentBlock": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "kicker", "title", "subtitle"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "hero_header" },
+            "kicker": { "type": "string" },
+            "title": { "type": "string" },
+            "subtitle": { "type": "string" },
+            "badge_label": { "type": "string" },
+            "badge_code": { "type": "string" },
+            "badge_meta": { "type": "string" },
+            "logo_jpeg_base64": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "title"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "section_heading" },
+            "title": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "cards"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "bento_grid" },
+            "columns": { "type": "integer", "minimum": 1, "maximum": 3, "default": 2 },
+            "cards": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["primary_label", "primary_value"],
+                "additionalProperties": false,
+                "properties": {
+                  "primary_label": { "type": "string" },
+                  "primary_value": { "type": "string" },
+                  "secondary_label": { "type": "string" },
+                  "secondary_value": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "columns", "rows"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "data_table" },
+            "zebra": { "type": "boolean", "default": true },
+            "columns": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["header"],
+                "additionalProperties": false,
+                "properties": {
+                  "header": { "type": "string" },
+                  "weight": { "type": "number", "minimum": 0.2 },
+                  "align": { "$ref": "#/$defs/TextAlign" },
+                  "bold_values": { "type": "boolean" }
+                }
+              }
+            },
+            "rows": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "currency", "rows"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "financial_summary" },
+            "currency": { "$ref": "#/$defs/Currency" },
+            "rows": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "object",
+                "required": ["label"],
+                "additionalProperties": false,
+                "properties": {
+                  "label": { "type": "string" },
+                  "amount_minor": {
+                    "type": "integer",
+                    "description": "Exact integer minor units (pence, cents, centavos, kopecks, fils, halalas, yen). Never pass floats."
+                  },
+                  "currency": { "$ref": "#/$defs/Currency" },
+                  "text_value": { "type": "string" },
+                  "emphasize": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "title", "subtitle"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "callout_banner" },
+            "title": { "type": "string" },
+            "subtitle": { "type": "string" },
+            "right_value": { "type": "string" },
+            "tone": { "$ref": "#/$defs/BannerTone" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "paragraphs"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "clause_list" },
+            "paragraphs": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "payload", "headline", "details"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "qr_verification" },
+            "payload": { "type": "string", "minLength": 1 },
+            "headline": { "type": "string" },
+            "details": { "type": "string" },
+            "code_display": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "signers"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "signature_grid" },
+            "heading": { "type": "string" },
+            "signers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["role_label", "party_name"],
+                "additionalProperties": false,
+                "properties": {
+                  "role_label": { "type": "string" },
+                  "party_name": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "rows"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "key_value_list" },
+            "dashed_dividers": { "type": "boolean" },
+            "rows": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "object",
+                "required": ["label", "value"],
+                "additionalProperties": false,
+                "properties": {
+                  "label": { "type": "string" },
+                  "value": { "type": "string" },
+                  "emphasize": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": { "type": { "const": "divider" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "height_pt"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "spacer" },
+            "height_pt": { "type": "number", "minimum": 2, "maximum": 200 }
+          }
+        }
+      ]
+    }
+  }
+}

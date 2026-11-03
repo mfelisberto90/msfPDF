@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>msfPDF · Sub-Millisecond Zero-Dependency %PDF-1.4 Engine (Rust &amp; TypeScript)</title>
+  <meta name="description" content="Deterministic sub-millisecond %PDF-1.4 vector document engine in Rust and TypeScript with native Latin, Russian Cyrillic, and connected Arabic RTL shaping, pure vector QR codes, and zero runtime dependencies.">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-WZRJfWvsnNCPcxzZwvyhovnZGqhZaC+8gPGPRbx6wTk='; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <link rel="canonical" href="https://mfelisberto90.github.io/msfPDF/">
+  <link rel="alternate" type="text/markdown" title="msfPDF LLM Context" href="https://mfelisberto90.github.io/msfPDF/llms.txt">
+  <link rel="alternate" type="text/plain" title="msfPDF Full LLM Reference" href="https://mfelisberto90.github.io/msfPDF/llms-full.txt">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="msfPDF · Sub-Millisecond %PDF-1.4 Engine (Latin, Cyrillic &amp; Connected Arabic RTL)">
+  <meta property="og:description" content="0.52 ms median latency, 0 npm dependencies, SHA-256 byte-for-byte parity between Rust and TypeScript, native Cyrillic and Arabic RTL without external .ttf files.">
+  <meta property="og:url" content="https://mfelisberto90.github.io/msfPDF/">
+  <meta property="og:image" content="https://mfelisberto90.github.io/msfPDF/assets/preview-multilingual-invoice.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="msfPDF · Zero-Dependency %PDF-1.4 Vector Engine">
+  <meta name="twitter:description" content="Compile invoices, receipts, and contracts in 0.52 ms across Rust, Node.js, Cloudflare Workers, and browsers with Latin, Russian Cyrillic, and Arabic RTL.">
+  <meta name="twitter:image" content="https://mfelisberto90.github.io/msfPDF/assets/preview-multilingual-invoice.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./showcase.css">
+  <script>document.documentElement.classList.add("js");</script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://github.com/mfelisberto90/msfPDF#source",
+        "name": "msfPDF",
+        "version": "0.2.0",
+        "description": "Deterministic, sub-millisecond, zero-dependency %PDF-1.4 vector document engine in Rust and TypeScript with native Latin, Russian/Ukrainian Cyrillic, and connected Arabic/Persian/Urdu RTL shaping, pure vector ISO 18004 QR codes, and a 0600 multi-tenant content-addressed vault.",
+        "codeRepository": "https://github.com/mfelisberto90/msfPDF",
+        "url": "https://mfelisberto90.github.io/msfPDF/",
+        "license": "https://opensource.org/licenses/MIT",
+        "programmingLanguage": ["Rust", "TypeScript", "JavaScript"],
+        "runtimePlatform": ["Native CLI", "Node.js 22+", "Cloudflare Workers", "Deno", "Bun", "Browser ES2022"],
+        "keywords": [
+          "pdf generator",
+          "zero-dependency pdf",
+          "arabic rtl pdf",
+          "russian cyrillic pdf",
+          "cloudflare workers pdf",
+          "invoice pdf generator",
+          "zatca qr invoice",
+          "ssrf-safe pdf",
+          "rust pdf library",
+          "typescript pdf engine"
+        ],
+        "author": {
+          "@type": "Person",
+          "name": "Murilo Felisberto",
+          "url": "https://github.com/mfelisberto90"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://mfelisberto90.github.io/msfPDF/#app",
+        "name": "msfPDF Interactive Compiler",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows, Edge Workers, Web Browser",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "GBP"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://mfelisberto90.github.io/msfPDF/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How can I generate Arabic RTL and Russian Cyrillic PDFs in Cloudflare Workers or Node.js with zero dependencies?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "msfPDF compiles Latin, Russian/Ukrainian Cyrillic, and connected Arabic/Persian/Urdu RTL text directly into 7-bit ASCII %PDF-1.4 streams using dynamic Type 3 vector glyph subsets (2048 UPM) and normalized UTF-16BE /ToUnicode CMaps, requiring zero external .ttf font files, zero WASM binaries, and zero npm runtime dependencies."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Why is msfPDF immune to SSRF and LFI vulnerabilities common in HTML-to-PDF tools?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Unlike Headless Chromium, Puppeteer, Playwright, or wkhtmltopdf, msfPDF never parses HTML, CSS, SVG, or URLs and opens zero network sockets. It compiles strongly typed JSON DocumentSpec ASTs directly into PDF vector operators with strict byte, page, block, and row limits."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do the Rust crate and TypeScript package produce identical PDF files?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Both msfpdf-core (Rust) and msfpdf (TypeScript) share the exact same layout coordinates, AFM + 2048 UPM glyph tables, Arabic BiDi shaper, Reed-Solomon GF(256) QR encoder, and ASCII xref writer, producing byte-for-byte SHA-256 identical PDF outputs."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <main id="top">
+    <!-- 1. HERO BOARD ("The well-kept board") -->
+    <section class="board-grid" aria-label="msfPDF overview board">
+      <div class="tile tile-brand" data-rise>
+        <div class="brand-bar">
+          <span class="wordmark">msfPDF v0.2</span>
+          <nav class="nav-links" aria-label="Primary links">
+            <a href="#live-studio">Studio</a>
+            <a href="#benchmarks">Benchmarks</a>
+            <a href="./llms.txt">llms.txt</a>
+            <a href="https://github.com/mfelisberto90/msfPDF">GitHub</a>
+          </nav>
+        </div>
+        <h1>Vector PDFs in <span class="accent-word">microseconds.</span></h1>
+      </div>
+
+      <div class="tile tile-statement" data-rise>
+        <p class="statement-copy">
+          Pure 7-bit ASCII <code>%PDF-1.4</code> compiler in Rust and TypeScript. Native Latin, Russian Cyrillic, and connected Arabic RTL with zero runtime dependencies.
+        </p>
+        <nav class="tile-links-row" aria-label="Machine-readable specifications">
+          <a href="./llms-full.txt">LLM Reference</a>
+          <a href="./schemas/document-spec.schema.json">JSON Schema</a>
+          <a href="https://github.com/mfelisberto90/msfPDF/blob/main/AGENTS.md">AGENTS.md</a>
+          <a href="https://github.com/mfelisberto90/msfPDF/blob/main/skills/msfpdf/SKILL.md">Agent Skill</a>
+        </nav>
+      </div>
+
+      <div class="tile tile-action" data-rise>
+        <div data-ui>
+          <p class="action-figure tabular">0.52 ms</p>
+          <p class="action-note">SHA-256 identical across Rust and TypeScript.</p>
+        </div>
+        <a class="btn btn-dark" href="#live-studio">Compile a live PDF</a>
+      </div>
+
+      <figure class="tile tile-photo tile-hero-doc shutter">
+        <div class="frame-media paper-sheet">
+          <img
+            src="./assets/preview-multilingual-invoice.png"
+            width="1241"
+            height="1754"
+            alt="Rendered multilingual A4 invoice showing English, Russian Cyrillic, and connected Arabic RTL text with vector QR verification"
+          >
+        </div>
+        <figcaption class="frame-strip strip-cornflower">
+          <span>EN · Русский · العربية</span>
+          <span class="tabular">143.5 KB</span>
+        </figcaption>
+      </figure>
+
+      <figure class="tile tile-photo tile-arch-top" data-rise>
+        <div class="frame-media">
+          <img
+            src="./assets/arch-facade.jpg"
+            width="1200"
+            height="800"
+            alt="Repeating geometric concrete facade representing deterministic coordinate grids"
+          >
+        </div>
+        <figcaption class="frame-strip strip-slate">
+          <span>Exact xref grid</span>
+          <span class="tabular">0 drift</span>
+        </figcaption>
+      </figure>
+
+      <figure class="tile tile-photo tile-thermal-bot" data-rise>
+        <div class="frame-media paper-sheet">
+          <img
+            src="./assets/preview-thermal-receipt.png"
+            width="454"
+            height="1197"
+            loading="lazy"
+            alt="Rendered 80mm POS thermal receipt with vector QR matrix and itemised VAT totals"
+          >
+        </div>
+        <figcaption class="frame-strip strip-cyan">
+          <span>Thermal 80mm POS</span>
+          <span class="tabular">ISO QR</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- 2. ONE LIVE THING: REAL BROWSER %PDF-1.4 COMPILER STUDIO -->
+    <section id="live-studio" class="section-block" aria-labelledby="studio-heading">
+      <div class="section-header" data-reveal>
+        <h2 id="studio-heading">Compile PDFs live</h2>
+        <p class="section-sub">
+          Edit English, Russian, or Arabic fields below. The zero-dependency TypeScript engine compiles a real binary-clean <code>%PDF-1.4</code> file right inside this tab.
+        </p>
+      </div>
+
+      <div class="studio-grid">
+        <div class="studio-controls" data-reveal>
+          <div class="preset-grid" role="group" aria-label="Document presets">
+            <button type="button" class="preset-btn" data-preset="trilingual" aria-pressed="true">
+              Trilingual EN · RU · AR
+            </button>
+            <button type="button" class="preset-btn" data-preset="uk_vat" aria-pressed="false">
+              UK Fintech VAT (GBP)
+            </button>
+            <button type="button" class="preset-btn" data-preset="ru_invoice" aria-pressed="false">
+              Russian Счёт (RUB)
+            </button>
+            <button type="button" class="preset-btn" data-preset="ar_zatca" aria-pressed="false">
+              Arabic فاتورة (AED)
+            </button>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label for="studio-theme">Palette preset</label>
+              <select id="studio-theme">
+                <option value="navy_fintech">Navy Fintech</option>
+                <option value="emerald_editorial">Emerald Editorial</option>
+                <option value="slate_minimal">Slate Minimal</option>
+                <option value="crimson_compliance">Crimson Compliance</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="studio-currency">Minor-unit currency</label>
+              <select id="studio-currency">
+                <option value="USD">USD ($)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="RUB">RUB (₽)</option>
+                <option value="AED">AED</option>
+                <option value="SAR">SAR</option>
+                <option value="BRL">BRL (R$)</option>
+                <option value="JPY">JPY (¥)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="studio-title">Header title (Latin, Кириллица, or العربية)</label>
+            <input id="studio-title" type="text" dir="auto" maxlength="120" value="Invoice / Счёт / فاتورة">
+          </div>
+
+          <div class="field-group">
+            <label for="studio-party">Counterparty line</label>
+            <input id="studio-party" type="text" dir="auto" maxlength="160" value="ООО Северный Мост · شركة الجسر الشمالي للتقنية">
+          </div>
+
+          <div class="field-group">
+            <label for="studio-note">Connected Arabic RTL or compliance note</label>
+            <input id="studio-note" type="text" dir="auto" maxlength="180" value="فاتورة ضريبية معتمدة · لا توجد رسوم إضافية على التسوية رقم 8841">
+          </div>
+
+          <div class="field-group">
+            <label for="studio-qr">ISO 18004 QR verification payload</label>
+            <input id="studio-qr" type="url" maxlength="100" value="https://github.com/mfelisberto90/msfPDF#trilingual-8841">
+          </div>
+
+          <div class="studio-actions">
+            <button type="button" id="btn-download-pdf" class="btn btn-primary">Download real .pdf</button>
+            <button type="button" id="btn-open-pdf" class="btn btn-surface">Open PDF in tab</button>
+          </div>
+        </div>
+
+        <div class="studio-output" data-reveal>
+          <div class="telemetry-row" data-ui>
+            <div class="telemetry-cell">
+              <span id="tel-latency" class="telemetry-val tabular">0.65 ms</span>
+              <span class="telemetry-key">Browser compile</span>
+            </div>
+            <div class="telemetry-cell">
+              <span id="tel-bytes" class="telemetry-val tabular">143,533 B</span>
+              <span class="telemetry-key">Exact stream size</span>
+            </div>
+            <div class="telemetry-cell">
+              <span id="tel-glyphs" class="telemetry-val tabular">52 Type 3</span>
+              <span class="telemetry-key">Dynamic subset</span>
+            </div>
+            <div class="telemetry-cell">
+              <span id="tel-ascii" class="telemetry-val tabular">7-bit PASS</span>
+              <span class="telemetry-key">xref integrity</span>
+            </div>
+          </div>
+
+          <div class="live-paper paper-sheet" data-ui>
+            <div id="paper-banner" class="live-paper-banner">
+              <div>
+                <div id="paper-title" class="live-paper-title" dir="auto">Invoice / Счёт / فاتورة</div>
+                <div id="paper-sub" class="live-paper-sub" dir="auto">ООО Северный Мост · شركة الجسر الشمالي للتقنية</div>
+              </div>
+              <span id="paper-badge" class="live-paper-badge" dir="auto">PAID</span>
+            </div>
+            <div class="live-paper-body">
+              <div class="live-paper-lines">
+                <div class="live-line-primary">Live specimen preview &amp; vector QR matrix</div>
+                <div id="paper-note" class="live-line-rtl" dir="auto">فاتورة ضريبية معتمدة · لا توجد رسوم إضافية على التسوية رقم 8841</div>
+                <div id="paper-total" class="live-line-total tabular">$19,425.00</div>
+              </div>
+              <div id="paper-qr" class="live-qr-box" aria-label="Live QR preview"></div>
+            </div>
+          </div>
+
+          <pre class="xref-console" data-ui aria-label="Live generated PDF xref table"><code id="xref-tail">xref
+0 8
+0000000000 65535 f 
+trailer
+&lt;&lt; /Size 8 /Root 1 0 R &gt;&gt;
+startxref
+%%EOF</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. SHOWCASE: ROWS AS A BOARD (Capabilities & Script Matrix) -->
+    <section class="section-block" aria-labelledby="board-heading">
+      <div class="section-header" data-reveal>
+        <h2 id="board-heading">Scripts and blocks</h2>
+        <p class="section-sub">Select any row to inspect how msfPDF emits typography, cryptography, and vector geometry without external fonts.</p>
+      </div>
+
+      <div class="departure-board" data-ui>
+        <button type="button" class="board-row" aria-expanded="false" data-reveal>
+          <span class="board-row-name">Latin &amp; Western European</span>
+          <span class="board-row-fact">Helvetica / Courier AFM</span>
+          <span class="board-row-fact tabular">0 font KB</span>
+          <span class="board-row-status">WinAnsi</span>
+          <span class="board-row-detail">Encodes CP1252 characters (£, €, ¥, accents, smart quotes, dashes) via 3-digit octal escapes so pure Latin invoices stay around 14 KB with zero embedded font streams.</span>
+        </button>
+
+        <button type="button" class="board-row" aria-expanded="false" data-reveal>
+          <span class="board-row-name">Russian &amp; Ukrainian Cyrillic</span>
+          <span class="board-row-fact">U+0401..U+045F + ₽ + №</span>
+          <span class="board-row-fact tabular">2048 UPM</span>
+          <span class="board-row-status">Русский</span>
+          <span class="board-row-detail">Embeds only the exact Cyrillic cubic Bezier CharProcs used in the document, paired with a normalized UTF-16BE /ToUnicode CMap so PDF text search and copy work cleanly.</span>
+        </button>
+
+        <button type="button" class="board-row" aria-expanded="false" data-reveal>
+          <span class="board-row-name">Connected Arabic, Persian &amp; Urdu</span>
+          <span class="board-row-fact">Contextual + Lam-Alef</span>
+          <span class="board-row-fact tabular">UAX #9 BiDi</span>
+          <span class="board-row-status">العربية</span>
+          <span class="board-row-detail">Joins Isolated, Final, Initial, and Medial letterforms, forms mandatory لا / لأ / لإ / لآ ligatures, preserves LTR numbers inside RTL clauses, and right-aligns RTL paragraphs.</span>
+        </button>
+
+        <button type="button" class="board-row is-open" aria-expanded="true" data-reveal>
+          <span class="board-row-name">ISO/IEC 18004 Vector QR Path</span>
+          <span class="board-row-fact">Reed-Solomon GF(256)</span>
+          <span class="board-row-fact tabular">v1..v6 ECC-L</span>
+          <span class="board-row-status">Vector Path</span>
+          <span class="board-row-detail">Evaluates all 8 QR penalty masks in memory and emits a single compound rectangle path (x y w h re ... f). Crisp at 2400 DPI print and instant to scan on ZATCA or PIX receipts.</span>
+        </button>
+
+        <button type="button" class="board-row" aria-expanded="false" data-reveal>
+          <span class="board-row-name">Exact Minor-Unit Money Math</span>
+          <span class="board-row-fact">GBP · EUR · USD · RUB · AED · SAR</span>
+          <span class="board-row-fact tabular">i64 / SafeInt</span>
+          <span class="board-row-status">Deterministic</span>
+          <span class="board-row-detail">All monetary totals operate on signed integer minor units (pence, cents, kopecks, fils, halalas, yen) with zero IEEE-754 binary floating-point rounding drift.</span>
+        </button>
+
+        <button type="button" class="board-row" aria-expanded="false" data-reveal>
+          <span class="board-row-name">Multi-Tenant 0600 Vault</span>
+          <span class="board-row-fact">SHA-256 content-addressed</span>
+          <span class="board-row-fact tabular">POSIX 0700</span>
+          <span class="board-row-status">Isolated</span>
+          <span class="board-row-detail">Validates strict alphanumeric tenant slugs, canonicalizes paths against symlink escapes, writes via atomic temp-file rename, and deduplicates identical documents per tenant.</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 4. STATS: BARS STANDING ON THE EDGE + RESPONSIVE TABLE -->
+    <section id="benchmarks" class="section-block" aria-labelledby="bench-heading">
+      <div class="section-header" data-reveal>
+        <h2 id="bench-heading">Latency at scale</h2>
+        <p class="section-sub">Measured on Linux x86_64 compiling a 2-page A4 invoice with vector QR code and itemized tax rows.</p>
+      </div>
+
+      <div class="stats-field" data-reveal>
+        <div class="stats-callout">
+          <p class="stats-giant tabular">0.52 ms</p>
+          <p class="stats-claim">Median Rust compile time. Up to 1,896 documents per second on one CPU core.</p>
+        </div>
+
+        <div class="edge-bars" data-ui aria-label="Relative latency across PDF tools">
+          <div class="bar-col is-hero">
+            <span class="bar-readout tabular">0.52 ms</span>
+            <span class="bar-name">msfPDF Rust</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 22px; --bar-m: 8%;"></div>
+          </div>
+          <div class="bar-col is-second">
+            <span class="bar-readout tabular">0.84 ms</span>
+            <span class="bar-name">msfPDF TS</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 34px; --bar-m: 12%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">14 ms</span>
+            <span class="bar-name">jsPDF</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 68px; --bar-m: 24%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">22 ms</span>
+            <span class="bar-name">PDFKit</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 88px; --bar-m: 32%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">26 ms</span>
+            <span class="bar-name">Typst Warm</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 104px; --bar-m: 38%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">45 ms</span>
+            <span class="bar-name">ReportLab</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 132px; --bar-m: 48%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">280 ms</span>
+            <span class="bar-name">WeasyPrint</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 184px; --bar-m: 66%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">490 ms</span>
+            <span class="bar-name">Chrome Warm</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 218px; --bar-m: 78%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">950 ms</span>
+            <span class="bar-name">wkhtmltopdf</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 246px; --bar-m: 88%;"></div>
+          </div>
+          <div class="bar-col">
+            <span class="bar-readout tabular">1,850 ms</span>
+            <span class="bar-name">Chrome Cold</span>
+            <div class="bar-pillar" data-bar style="--bar-h: 276px; --bar-m: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div tabindex="0" role="region" aria-labelledby="engine-bench-caption" class="table-wrapper" data-reveal>
+        <table class="bench-table tabular">
+          <caption id="engine-bench-caption">Architectural comparison across server and edge PDF stacks</caption>
+          <thead>
+            <tr>
+              <th scope="col">Engine</th>
+              <th scope="col">P50 latency</th>
+              <th scope="col">Cold RAM</th>
+              <th scope="col">Runtime deps</th>
+              <th scope="col">Arabic + Cyrillic</th>
+              <th scope="col">SSRF surface</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-accent">
+              <th scope="row">msfPDF (Rust)</th>
+              <td>0.52 ms</td>
+              <td>~2.4 MB</td>
+              <td>0 crates (810 KB CLI)</td>
+              <td>Built-in Type 3 (0 .ttf)</td>
+              <td>Zero (no HTML/net)</td>
+            </tr>
+            <tr class="row-accent">
+              <th scope="row">msfPDF (TypeScript)</th>
+              <td>0.84 ms</td>
+              <td>~8 MB V8</td>
+              <td>0 npm packages</td>
+              <td>Built-in Type 3 (0 .ttf)</td>
+              <td>Zero (no HTML/net)</td>
+            </tr>
+            <tr>
+              <th scope="row">Typst CLI</th>
+              <td>18–45 ms</td>
+              <td>~35–60 MB</td>
+              <td>External font pack</td>
+              <td>Requires .ttf/.otf files</td>
+              <td>Low (local FS sandbox)</td>
+            </tr>
+            <tr>
+              <th scope="row">WeasyPrint</th>
+              <td>180–420 ms</td>
+              <td>~95–160 MB</td>
+              <td>Cairo + Pango + HarfBuzz</td>
+              <td>System OS fonts</td>
+              <td>URL fetcher must be locked</td>
+            </tr>
+            <tr>
+              <th scope="row">Headless Chromium</th>
+              <td>380–2,400 ms</td>
+              <td>~280–550 MB</td>
+              <td>400 MB browser image</td>
+              <td>System OS fonts</td>
+              <td>High (DOM, SVG, network)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. HOW IT WORKS: STAGES AS ONE BAR -->
+    <section class="section-block" aria-labelledby="stages-heading">
+      <div class="section-header" data-reveal>
+        <h2 id="stages-heading">Four byte stages</h2>
+        <p class="section-sub">Proportional share of a 520-microsecond document compile from raw JSON to sealed bytes.</p>
+      </div>
+
+      <div class="stages-bar" data-ui>
+        <div class="stage-seg stage-1" data-reveal>
+          <span class="stage-time tabular">70 microseconds</span>
+          <p class="stage-desc">First, enforce byte, page, and row bounds before layout starts.</p>
+        </div>
+        <div class="stage-seg stage-2" data-reveal>
+          <span class="stage-time tabular">135 microseconds</span>
+          <p class="stage-desc">Second, join Arabic ligatures and reorder visual UAX #9 runs.</p>
+        </div>
+        <div class="stage-seg stage-3" data-reveal>
+          <span class="stage-time tabular">195 microseconds</span>
+          <p class="stage-desc">Third, emit vector primitives, QR paths, and used Type 3 glyphs.</p>
+        </div>
+        <div class="stage-seg stage-4" data-reveal>
+          <span class="stage-time tabular">120 microseconds</span>
+          <p class="stage-desc">Fourth, write exact 10-digit ASCII xref offsets and seal EOF.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. FEATURES: CLOSE-UPS ON A BOARD + REAL RENDERED SPECIMENS -->
+    <section class="section-block" aria-labelledby="features-heading">
+      <div class="section-header" data-reveal>
+        <h2 id="features-heading">Inside the stream</h2>
+        <p class="section-sub">Macro views of the primitives paired with genuine Poppler rasterizations of msfPDF outputs.</p>
+      </div>
+
+      <div class="macro-board">
+        <article class="macro-tile span-4 fill-raised" data-reveal>
+          <div class="macro-specimen" dir="rtl" data-ui>لا · فاتورة</div>
+          <div class="macro-caption">
+            <h3>Connected Arabic RTL</h3>
+            <p>20-FUnit stem overlaps in 2048 UPM eliminate seams between joined Arabic letters.</p>
+          </div>
+        </article>
+
+        <article class="macro-tile span-4 fill-cyan" data-reveal>
+          <div class="macro-specimen" data-ui>Счёт № ₽</div>
+          <div class="macro-caption">
+            <h3>Cyrillic + Ruble</h3>
+            <p>Full U+0401..U+045F alphabet, Ukrainian І/Ї/Є/Ґ, Ruble sign, and Numero glyph.</p>
+          </div>
+        </article>
+
+        <article class="macro-tile span-4 fill-accent" data-reveal>
+          <div class="macro-specimen tabular" data-ui>SHA-256</div>
+          <div class="macro-caption">
+            <h3>Dual-runtime parity</h3>
+            <p>Rust CLI and TypeScript SDK emit the exact same byte sequence for every input spec.</p>
+          </div>
+        </article>
+
+        <figure class="macro-tile macro-photo-tile span-4" data-reveal>
+          <div class="frame-media paper-sheet">
+            <img
+              src="./assets/preview-uk-invoice.png"
+              width="1241"
+              height="1754"
+              loading="lazy"
+              alt="Rendered UK Fintech VAT invoice in GBP with Bento summary cards and itemized lines"
+            >
+          </div>
+          <figcaption class="frame-strip strip-slate">
+            <span>UK Fintech VAT</span>
+            <span class="tabular">14.0 KB</span>
+          </figcaption>
+        </figure>
+
+        <figure class="macro-tile macro-photo-tile span-4" data-reveal>
+          <div class="frame-media paper-sheet">
+            <img
+              src="./assets/preview-contract-p1.png"
+              width="1241"
+              height="1754"
+              loading="lazy"
+              alt="Rendered multi-page compliance agreement with automatic continuation headers and signature grid"
+            >
+          </div>
+          <figcaption class="frame-strip strip-cornflower">
+            <span>Multi-page contract</span>
+            <span class="tabular">Auto break</span>
+          </figcaption>
+        </figure>
+
+        <figure class="macro-tile macro-photo-tile span-4" data-reveal>
+          <div class="frame-media">
+            <img
+              src="./assets/arch-geometry.jpg"
+              width="1200"
+              height="800"
+              loading="lazy"
+              alt="Stepped modern architectural corner illustrating structured agent schemas"
+            >
+          </div>
+          <figcaption class="frame-strip strip-cyan">
+            <span>AI &amp; LLM ready</span>
+            <span>llms.txt + Schema</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 7. FAQ: ACCORDION OF FILLED TILES -->
+    <section class="section-block" aria-labelledby="faq-heading">
+      <div class="faq-layout">
+        <div class="faq-lead" data-reveal>
+          <h2 id="faq-heading">Engine questions</h2>
+          <p>Direct technical answers for engineers, security reviewers, and coding agents evaluating msfPDF.</p>
+        </div>
+
+        <div class="faq-stack">
+          <details class="faq-item" name="msfpdf-faq" open data-reveal>
+            <summary>
+              <span>How does msfPDF render Arabic and Cyrillic without .ttf files?</span>
+              <span class="faq-plus" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>msfPDF ships 273 Public Domain cubic Bezier glyph outlines in integer 2048-UPM coordinates. When a document contains Cyrillic or shaped Arabic codepoints, the compiler subsets only the used glyphs into a PDF <code>/Type3</code> font dictionary and attaches a UTF-16BE <code>/ToUnicode</code> CMap.</p>
+            </div>
+          </details>
+
+          <details class="faq-item" name="msfpdf-faq" data-reveal>
+            <summary>
+              <span>Does pure Latin output pay any size overhead for multilingual support?</span>
+              <span class="faq-plus" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>Zero bytes. Documents that only use ASCII and Western European CP1252 characters continue to use built-in PDF Standard 14 <code>/WinAnsiEncoding</code>, keeping a rich A4 invoice with vector QR code at roughly 14 KB.</p>
+            </div>
+          </details>
+
+          <details class="faq-item" name="msfpdf-faq" data-reveal>
+            <summary>
+              <span>Can it run inside Cloudflare Workers, Vercel Edge, or browsers?</span>
+              <span class="faq-plus" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>Yes. The core TypeScript entry point imports zero Node.js built-ins, zero native addons, and zero WASM modules. The live compiler studio on this page runs the exact same module directly in your browser.</p>
+            </div>
+          </details>
+
+          <details class="faq-item" name="msfpdf-faq" data-reveal>
+            <summary>
+              <span>Why is 7-bit ASCII purity enforced across the entire PDF stream?</span>
+              <span class="faq-plus" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>Multi-byte UTF-8 sequences inside raw PDF streams often corrupt byte-offset calculations in <code>xref</code> tables when strings are manipulated in JavaScript or proxies. Emitting strictly <code>0x0A</code> and <code>0x20..=0x7E</code> guarantees character length equals byte length everywhere.</p>
+            </div>
+          </details>
+
+          <details class="faq-item" name="msfpdf-faq" data-reveal>
+            <summary>
+              <span>How can AI coding agents integrate msfPDF automatically?</span>
+              <span class="faq-plus" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>Feed <a href="./llms.txt">llms.txt</a> or <a href="./llms-full.txt">llms-full.txt</a> to your model, validate LLM structured outputs against <a href="./schemas/document-spec.schema.json">document-spec.schema.json</a>, or drop the bundled <code>skills/msfpdf/SKILL.md</code> into Claude Code, Cursor, Codex, or Antigravity.</p>
+            </div>
+          </details>
+
+          <details class="faq-item" name="msfpdf-faq" data-reveal>
+            <summary>
+              <span>When should I still choose Typst or Headless Chromium instead?</span>
+              <span class="faq-plus" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-answer">
+              <p>Choose Headless Chromium when you must screenshot arbitrary user-authored CSS/DOM dashboards, and choose Typst for academic typesetting with LaTeX math formulas or CJK OpenType fonts. Choose msfPDF for transactional invoices, receipts, statements, audit certificates, and multi-page contracts.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 8. FOOTER: THE MARK, BUILT LARGE -->
+  <footer class="footer-band">
+    <div class="mark-blocks" aria-hidden="true" data-reveal>
+      <div class="mark-cell mark-1">m</div>
+      <div class="mark-cell mark-2">s</div>
+      <div class="mark-cell mark-3">f</div>
+      <div class="mark-cell mark-4">P</div>
+      <div class="mark-cell mark-5">D</div>
+      <div class="mark-cell mark-6">F</div>
+    </div>
+
+    <div class="footer-grid">
+      <div class="footer-col">
+        <span class="footer-col-title">Source &amp; Releases</span>
+        <a href="https://github.com/mfelisberto90/msfPDF">GitHub Repository</a>
+        <a href="https://github.com/mfelisberto90/msfPDF/releases">Release v0.2.0</a>
+        <a href="https://github.com/mfelisberto90/msfPDF/blob/main/SECURITY.md">Security Architecture</a>
+      </div>
+
+      <div class="footer-col">
+        <span class="footer-col-title">AI &amp; Agent Discovery</span>
+        <a href="./llms.txt">llms.txt Index</a>
+        <a href="./llms-full.txt">llms-full.txt Complete</a>
+        <a href="./schemas/document-spec.schema.json">JSON Schema 2020-12</a>
+      </div>
+
+      <div class="footer-col">
+        <span class="footer-col-title">Agent Skills &amp; Metadata</span>
+        <a href="https://github.com/mfelisberto90/msfPDF/blob/main/AGENTS.md">AGENTS.md Guide</a>
+        <a href="https://github.com/mfelisberto90/msfPDF/blob/main/skills/msfpdf/SKILL.md">Installable SKILL.md</a>
+        <a href="https://github.com/mfelisberto90/msfPDF/blob/main/CITATION.cff">CITATION.cff</a>
+      </div>
+
+      <div class="footer-col">
+        <span class="footer-col-title">Author &amp; Governance</span>
+        <a href="https://github.com/mfelisberto90">Murilo Felisberto (UK)</a>
+        <a href="https://github.com/mfelisberto90/msfPDF/blob/main/THIRD_PARTY_NOTICES.md">Public Domain Font Notices</a>
+        <a href="./sitemap.xml">XML Sitemap</a>
+      </div>
+    </div>
+
+    <div class="footer-foot">
+      <p class="footer-copy">MIT License · Murilo Felisberto · Zero-dependency Rust &amp; TypeScript %PDF-1.4 Engine</p>
+      <a class="btn btn-surface" href="#live-studio">Back to live studio</a>
+    </div>
+  </footer>
+
+  <script type="module" src="./showcase.js"></script>
+</body>
+</html>

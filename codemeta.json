@@ -1,0 +1,51 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "msfPDF",
+  "version": "0.2.0",
+  "description": "Sub-millisecond zero-rendering-dependency ISO 32000-1 (%PDF-1.4) vector document engine with byte-identical Rust & TypeScript runtimes, Latin/WinAnsi, Russian Cyrillic, connected Arabic RTL shaping, pure GF(256) vector QR codes, exact integer currency formatting, and 0600 multi-tenant vault storage.",
+  "license": "https://spdx.org/licenses/MIT.html",
+  "codeRepository": "https://github.com/mfelisberto90/msfPDF",
+  "url": "https://mfelisberto90.github.io/msfPDF/",
+  "dateCreated": "2026-11-02",
+  "datePublished": "2026-11-02",
+  "dateModified": "2026-11-03",
+  "programmingLanguage": ["Rust", "TypeScript"],
+  "runtimePlatform": [
+    "Linux",
+    "macOS",
+    "Windows",
+    "Node.js >= 22.6",
+    "Bun",
+    "Deno",
+    "Cloudflare Workers",
+    "Browser ES2022"
+  ],
+  "operatingSystem": ["Linux", "macOS", "Windows"],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Murilo",
+      "familyName": "Felisberto",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Edinburgh",
+        "addressRegion": "Scotland",
+        "addressCountry": "GB"
+      }
+    }
+  ],
+  "keywords": [
+    "PDF generator",
+    "%PDF-1.4",
+    "zero-dependency",
+    "Rust PDF",
+    "TypeScript PDF",
+    "Cloudflare Workers PDF",
+    "Arabic RTL PDF",
+    "Cyrillic Russian PDF",
+    "Vector QR code",
+    "SSRF-free PDF",
+    "FinTech invoice generator"
+  ]
+}

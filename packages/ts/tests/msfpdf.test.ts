@@ -13,6 +13,8 @@ import {
   pdfEscapeWinAnsi,
   renderDocument,
   renderDocumentJson,
+  shapeAndReorderLine,
+  shapeArabicLogical,
 } from '../src/index.ts';
 import { TenantPdfVault } from '../src/vault.ts';
 
@@ -72,6 +74,9 @@ test('enforces exact integer minor units in formatMoneyMinor and rejects binary 
   assert.equal(formatMoneyMinor(1_650_000, 'EUR'), '€16,500.00');
   assert.equal(formatMoneyMinor(20_000_000, 'BRL'), 'R$ 200.000,00');
   assert.equal(formatMoneyMinor(12_800, 'JPY'), '¥12,800');
+  assert.equal(formatMoneyMinor(45_000_050, 'RUB'), '450 000,50 ₽');
+  assert.equal(formatMoneyMinor(1_942_500, 'AED'), 'AED 19,425.00');
+  assert.equal(formatMoneyMinor(750_000, 'SAR'), 'SAR 7,500.00');
 
   assert.throws(
     () => formatMoneyMinor(19.99, 'GBP'),
@@ -79,9 +84,18 @@ test('enforces exact integer minor units in formatMoneyMinor and rejects binary 
   );
 });
 
+test('shapes Arabic RTL ligatures and renders Russian Cyrillic & Arabic in pure 7-bit ASCII Type 3', () => {
+  const logical = 'فاتورة للأنظمة رقم 8841';
+  const shaped = shapeArabicLogical(logical);
+  assert.ok(shaped.includes('\uFEF8'), 'must form final Lam-Alef-Hamza ligature');
+  const visual = shapeAndReorderLine(logical);
+  assert.ok(visual.startsWith('8841 '), 'numbers in RTL line must stay LTR on left visual end');
+});
+
 test('compiles all canonical JSON example specs with valid xref tables and vector QR matrices', async () => {
   const examples = [
     'uk-b2b-invoice.json',
+    'global-multilingual-invoice.json',
     'commercial-contract-multipage.json',
     'pos-thermal-receipt.json',
   ];
@@ -90,6 +104,13 @@ test('compiles all canonical JSON example specs with valid xref tables and vecto
     const raw = await fs.readFile(path.join(ROOT_DIR, 'examples', name), 'utf8');
     const pdf = renderDocumentJson(raw);
     const ascii = assertValidXrefAnd7BitAscii(pdf);
+    if (name === 'uk-b2b-invoice.json') {
+      assert.ok(!ascii.includes('/Subtype /Type3'), 'pure Latin invoice must emit zero Type 3 fonts');
+    }
+    if (name === 'global-multilingual-invoice.json') {
+      assert.ok(ascii.includes('/Subtype /Type3'), 'multilingual invoice must emit Type 3 subsets');
+      assert.ok(ascii.includes('/ToUnicode'), 'multilingual invoice must emit /ToUnicode CMap');
+    }
     if (name === 'commercial-contract-multipage.json') {
       assert.ok(
         ascii.includes('/Count 2') || ascii.includes('/Count 3'),

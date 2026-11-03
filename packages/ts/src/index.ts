@@ -9,6 +9,12 @@ export { encodeQr } from './qr.ts';
 export type { QrMatrix } from './qr.ts';
 export { renderDocument, renderDocumentJson } from './renderer.ts';
 export {
+  hasArabicOrRtl,
+  isRtlDominant,
+  shapeAndReorderLine,
+  shapeArabicLogical,
+} from './shaping.ts';
+export {
   DEFAULT_SECURITY_LIMITS,
   MsfPdfError,
 } from './types.ts';

@@ -1,0 +1,118 @@
+{
+  "page_format": "a4",
+  "theme": "navy_fintech",
+  "metadata": {
+    "issuer_name": "Meridian Clearing House Ltd • ميريديان للتسوية",
+    "document_code": "#GLB-2026-9042",
+    "issued_at_label": "03 Nov 2026",
+    "footer_notice": "Meridian Clearing House Ltd (London & DIFC) • Счёт № GLB-2026-9042 • فاتورة ضريبية معتمدة",
+    "page_counter_template": "Page {current} / {total}"
+  },
+  "blocks": [
+    {
+      "type": "hero_header",
+      "kicker": "MULTILINGUAL TAX INVOICE • СЧЁТ-ФАКТУРА • فاتورة ضريبية",
+      "title": "Meridian Clearing House Ltd",
+      "subtitle": "Cross-Border Settlement Infrastructure — London • Dubai DIFC • Алматы",
+      "badge_label": "CLEARING REF / №",
+      "badge_code": "#GLB-2026-9042",
+      "badge_meta": "03/11/2026 • AED / RUB / GBP"
+    },
+    {
+      "type": "bento_grid",
+      "columns": 2,
+      "cards": [
+        {
+          "primary_label": "MENA COUNTERPARTY • الطرف المتعاقد",
+          "primary_value": "شركة الخليج للأنظمة السحابية ذ.م.م",
+          "secondary_label": "JURISDICTION / TRN",
+          "secondary_value": "Dubai International Financial Centre (DIFC) • دبي"
+        },
+        {
+          "primary_label": "EURASIA NODE • КОНТРАГЕНТ ЕАЭС",
+          "primary_value": "ООО «Северный Контур Технолоджи»",
+          "secondary_label": "РЕГИСТРАЦИЯ / УЗЕЛ",
+          "secondary_value": "Пресненская наб. 12 • Шлюз расчётов № 04"
+        }
+      ]
+    },
+    {
+      "type": "section_heading",
+      "title": "1. SETTLEMENT SCHEDULE • ВЕДОМОСТЬ УСЛУГ • جدول التسوية"
+    },
+    {
+      "type": "data_table",
+      "zebra": true,
+      "columns": [
+        { "header": "SERVICE / УСЛУГА / الخدمة", "weight": 3.2, "align": "left", "bold_values": true },
+        { "header": "REGION / УЗЕЛ", "weight": 1.3, "align": "center", "bold_values": false },
+        { "header": "AMOUNT / СУММА", "weight": 1.3, "align": "right", "bold_values": true }
+      ],
+      "rows": [
+        [
+          "Dedicated HSM Vault • بوابة التشفير السحابية",
+          "me-central-1",
+          "AED 12,400.00"
+        ],
+        [
+          "Выделенный кластер валидации транзакций (4 узла)",
+          "eu-north-2",
+          "AED 4,800.00"
+        ],
+        [
+          "Real-Time FX Telemetry & Audit Stream • تدقيق فوري",
+          "uk-lon-01",
+          "AED 1,300.00"
+        ]
+      ]
+    },
+    {
+      "type": "financial_summary",
+      "currency": "AED",
+      "rows": [
+        { "label": "Net Clearing Subtotal • Промежуточный итог • المجموع الفرعي", "amount_minor": 1850000 },
+        { "label": "GCC Standard VAT (5.0%) • ضريبة القيمة المضافة", "amount_minor": 92500 },
+        { "label": "FX Reference Equivalent (RUB Spot) • Справочный курс", "text_value": "514 812,50 ₽", "emphasize": true }
+      ]
+    },
+    {
+      "type": "callout_banner",
+      "title": "TOTAL SETTLEMENT DUE • ИТОГО К ОПЛАТЕ • الإجمالي المستحق",
+      "subtitle": "SWIFT / UAEFTS Instant Settlement within 15 calendar days",
+      "right_value": "AED 19,425.00",
+      "tone": "accent"
+    },
+    {
+      "type": "qr_verification",
+      "payload": "https://verify.meridianclearing.example/doc/GLB-2026-9042?ccy=AED&minor=1942500",
+      "headline": "CRYPTOGRAPHIC VERIFICATION • ПРОВЕРКА ПОДЛИННОСТИ • التحقق الرقمي",
+      "details": "Scan vector QR to verify SHA-256 ledger digest across English, Русский, and العربية.",
+      "code_display": "SHA256: 4E19-C80A-77B2-D301"
+    },
+    {
+      "type": "section_heading",
+      "title": "2. GOVERNING CLAUSES • ПРАВОВЫЕ УСЛОВИЯ • الشروط القانونية"
+    },
+    {
+      "type": "clause_list",
+      "paragraphs": [
+        "1. All monetary figures are computed in exact integer minor units (fils, kopecks, pence) with zero binary floating-point rounding drift.",
+        "2. Все криптографические квитанции и реестры расчётов формируются детерминированно в формате ISO 32000-1 (%PDF-1.4) без внешних шрифтовых файлов.",
+        "تخضع هذه الفاتورة الضريبية لضوابط التسوية الإلكترونية الفورية، وتصدر بتشفير متجهي كامل دون أي تبعيات خارجية رقم 9042."
+      ]
+    },
+    {
+      "type": "signature_grid",
+      "signers": [
+        {
+          "role_label": "ISSUER • ЭМИТЕНТ",
+          "party_name": "Meridian Clearing House Ltd"
+        },
+        {
+          "role_label": "COUNTERPARTY • الطرف الثاني",
+          "party_name": "شركة الخليج للأنظمة السحابية"
+        }
+      ]
+    }
+  ]
+}

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   verify:
-    name: Security Lint, Rust & TypeScript Parity
+    name: Security Lint, Rust & TypeScript Multilingual Parity
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -47,6 +47,7 @@ jobs:
           chmod +x scripts/build-release.sh
           ./scripts/build-release.sh -p msfpdf-cli
           ./target/release/msfpdf render --in examples/uk-b2b-invoice.json --out /tmp/uk-invoice.pdf
+          ./target/release/msfpdf render --in examples/global-multilingual-invoice.json --out /tmp/multilingual-invoice.pdf
           ./target/release/msfpdf render --in examples/commercial-contract-multipage.json --out /tmp/contract.pdf
           ./target/release/msfpdf render --in examples/pos-thermal-receipt.json --out /tmp/thermal.pdf
           ./target/release/msfpdf bench --iterations 1000
@@ -63,5 +64,10 @@ jobs:
       - name: Run strict TypeScript typecheck
         run: npm run typecheck
 
-      - name: Run TypeScript test suite
+      - name: Run TypeScript test suite (including Rust/TS SHA-256 parity)
         run: npm run test:ts
+
+      - name: Verify showcase browser bundle & AI discovery sync
+        run: |
+          npm run build:showcase
+          git diff --exit-code docs/msfpdf-browser.min.js docs/llms.txt docs/llms-full.txt docs/schemas/document-spec.schema.json

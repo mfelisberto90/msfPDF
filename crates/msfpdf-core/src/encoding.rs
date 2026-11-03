@@ -1,4 +1,8 @@
+use std::borrow::Cow;
+
 use crate::geometry::FontFace;
+use crate::glyphs_data::{lookup_vector_glyph, VECTOR_UPM};
+use crate::shaping::{has_arabic_or_rtl, shape_arabic_logical};
 
 /// Maps CP1252 printable glyphs in 0x80..=0x9F to their 7-bit PDF octal escapes.
 fn cp1252_special_octal(ch: char) -> Option<&'static str> {
@@ -109,35 +113,68 @@ pub fn pdf_escape_win_ansi(input: &str) -> String {
     out
 }
 
+#[inline]
+fn afm_win_ansi_unit(ch: char) -> f64 {
+    match ch {
+        ' ' | '.' | ',' | ':' | ';' | '!' | '|' | '/' | '\'' | '‘' | '’' | 'i' | 'l' | 'I'
+        | 'í' | 'ì' | 'î' | 'ï' => 0.278,
+        'j' => 0.222,
+        'f' | 'r' | 't' | '(' | ')' | '[' | ']' | '-' | '–' => 0.333,
+        '•' => 0.350,
+        '"' | '“' | '”' => 0.400,
+        's' | 'z' | 'c' | 'ç' | 'J' => 0.500,
+        'L' | '1' => 0.556,
+        'm' | 'w' => 0.833,
+        'M' | 'W' | '%' | '‰' => 0.889,
+        '@' | '—' | 'Œ' | 'œ' => 0.980,
+        'G' | 'O' | 'Q' | 'Ó' | 'Ô' | 'Õ' | 'Ò' => 0.778,
+        'C' | 'D' | 'H' | 'N' | 'R' | 'U' | 'Ç' | 'Ñ' | 'Ú' => 0.722,
+        c if c.is_ascii_uppercase() || ('\u{00C0}'..='\u{00DD}').contains(&c) => 0.667,
+        _ => 0.556,
+    }
+}
+
 /// Estimates glyph advance width in PDF points (`1/72 inch`) using Adobe Font Metrics (AFM) proportions
-/// for Standard Type 1 `Helvetica`, `Helvetica-Bold`, and `Courier`.
+/// for Standard Type 1 `Helvetica`/`Courier` and exact `2048-UPM` `hmtx` advance widths for Cyrillic & shaped Arabic glyphs.
 pub fn estimate_font_width_pt(text: &str, font: FontFace, size_pt: f64) -> f64 {
-    if font == FontFace::Mono {
-        return (text.chars().count() as f64) * 0.600 * size_pt;
+    let effective: Cow<'_, str> = if has_arabic_or_rtl(text) {
+        Cow::Owned(shape_arabic_logical(text))
+    } else {
+        Cow::Borrowed(text)
+    };
+
+    let mut win_ansi_units = 0.0;
+    let mut win_ansi_count = 0usize;
+    let mut vector_funits: u64 = 0;
+
+    for ch in effective.chars() {
+        if let Some(rec) = lookup_vector_glyph(ch as u32) {
+            let adv = if font == FontFace::Bold {
+                rec.bold_adv
+            } else {
+                rec.regular_adv
+            };
+            vector_funits += adv as u64;
+        } else {
+            win_ansi_count += 1;
+            if font != FontFace::Mono {
+                win_ansi_units += afm_win_ansi_unit(ch);
+            }
+        }
     }
 
-    let mut units = 0.0;
-    for ch in text.chars() {
-        units += match ch {
-            ' ' | '.' | ',' | ':' | ';' | '!' | '|' | '\'' | '‘' | '’' | 'i' | 'l' | 'I' | 'í'
-            | 'ì' | 'î' | 'ï' => 0.278,
-            'j' => 0.222,
-            'f' | 'r' | 't' | '(' | ')' | '[' | ']' | '-' | '–' => 0.333,
-            '"' | '“' | '”' => 0.400,
-            's' | 'z' | 'c' | 'ç' | 'J' => 0.500,
-            'L' | '1' => 0.556,
-            'm' | 'w' => 0.833,
-            'M' | 'W' | '%' | '‰' => 0.889,
-            '@' | '—' | 'Œ' | 'œ' => 0.980,
-            'G' | 'O' | 'Q' | 'Ó' | 'Ô' | 'Õ' | 'Ò' => 0.778,
-            'C' | 'D' | 'H' | 'N' | 'R' | 'U' | 'Ç' | 'Ñ' | 'Ú' => 0.722,
-            c if c.is_ascii_uppercase() || ('\u{00C0}'..='\u{00DD}').contains(&c) => 0.667,
-            _ => 0.556,
-        };
-    }
+    let win_pt = if font == FontFace::Mono {
+        (win_ansi_count as f64) * 0.600 * size_pt
+    } else {
+        let bold_scale = if font == FontFace::Bold { 1.045 } else { 1.0 };
+        win_ansi_units * size_pt * bold_scale
+    };
 
-    let bold_scale = if font == FontFace::Bold { 1.045 } else { 1.0 };
-    units * size_pt * bold_scale
+    if vector_funits == 0 {
+        win_pt
+    } else {
+        win_pt + ((vector_funits as f64) / VECTOR_UPM) * size_pt
+    }
 }
 
 /// Truncates text cleanly with a single CP1252 ellipsis (`…`) when its rendered width exceeds `max_width_pt`.

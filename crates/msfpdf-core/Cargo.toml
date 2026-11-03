@@ -1,11 +1,15 @@
 [package]
 name = "msfpdf-core"
-description = "Sub-millisecond zero-rendering-dependency %PDF-1.4 vector document engine, WinAnsi octal encoder, pure vector QR generator, and multi-tenant 0600 vault"
+description = "Sub-millisecond zero-rendering-dependency %PDF-1.4 vector engine with Latin, Cyrillic (Russian), connected Arabic RTL, vector QR, and 0600 multi-tenant vault"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+keywords = ["pdf", "invoice", "arabic", "cyrillic", "qrcode"]
+categories = ["rendering::data-formats", "text-processing", "internationalization", "encoding"]
 
 [dependencies]
 serde.workspace = true

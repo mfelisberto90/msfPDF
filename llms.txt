@@ -1,0 +1,20 @@
+# msfPDF
+
+> Sub-millisecond (`0.16–0.52 ms`), zero-rendering-dependency ISO 32000-1 (`%PDF-1.4`) vector document engine with 1:1 byte-identical parity across Rust (`msfpdf-core`), Web-Standard TypeScript (`0` runtime `npm` dependencies — Node 22+, Bun, Deno, Cloudflare Workers, Browser), and a `< 1 MB` standalone CLI (`msfpdf`). Supports English/Latin (`/WinAnsiEncoding` octal escapes), Russian & Slavic Cyrillic (`А-Я`, `а-я`, `Ё`, `ё`, `₽`, `№`), and connected Arabic RTL (`العربية` contextual shaping, mandatory `Lam-Alef` ligatures, UAX #9 BiDi ordering, and searchable `/ToUnicode` CMaps), plus pure `GF(256)` Reed-Solomon vector QR codes, exact integer currency formatting (`GBP`, `EUR`, `USD`, `BRL`, `JPY`, `RUB`, `AED`, `SAR`), and atomic `0600` multi-tenant disk vaults.
+
+## Core Documentation & AI Context
+- [Full Single-File LLM Reference (llms-full.txt)](https://mfelisberto90.github.io/msfPDF/llms-full.txt): Complete API, `DocumentSpec` blocks, multilingual shaping architecture, and copy-pasteable TypeScript, Rust, and CLI examples in a single file.
+- [README & Benchmarks](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/README.md): Overview, latency benchmarks vs Chromium/Typst/PDFKit, and multilingual specimen gallery.
+- [DocumentSpec JSON Schema (2020-12)](https://mfelisberto90.github.io/msfPDF/schemas/document-spec.schema.json): Machine-readable schema for LLM Structured Outputs and IDE validation.
+- [Agent Skill (SKILL.md)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/skills/msfpdf/SKILL.md): Installable skill instructions for Claude Code, Cursor, Antigravity, and Codex.
+- [Repository Agent Guidelines (AGENTS.md)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/AGENTS.md): Build, test, and security invariant gates.
+
+## Canonical DocumentSpec Examples
+- [UK B2B Commercial Tax Invoice (GBP)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/examples/uk-b2b-invoice.json): Single-page A4 invoice with Bento counterparty grid, itemised table, VAT summary, and vector QR.
+- [Global Trilingual Clearing Invoice (English + Русский + العربية)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/examples/global-multilingual-invoice.json): Cross-border A4 invoice demonstrating Cyrillic + connected RTL Arabic shaping, `AED`/`RUB` minor units, and right-aligned Arabic clauses.
+- [Multi-Page Commercial Contract (EUR)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/examples/commercial-contract-multipage.json): Automatic flow pagination, continuation headers, keep-with-next headings, and 3-signer execution grid.
+- [80 mm POS & Allergen Compliance Slip (GBP)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/examples/pos-thermal-receipt.json): Narrow 80 mm thermal layout with dashed key-value rows and allergen callout banner.
+
+## Security & Citations
+- [Security Architecture & Threat Model (SECURITY.md)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/SECURITY.md): SSRF elimination, PDF stream-operator injection defence, DoS ceilings, and `0600` `TenantPdfVault` isolation.
+- [Citation Metadata (CITATION.cff)](https://raw.githubusercontent.com/mfelisberto90/msfPDF/main/CITATION.cff): Software citation manifest.

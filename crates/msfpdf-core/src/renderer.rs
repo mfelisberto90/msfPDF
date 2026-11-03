@@ -5,6 +5,7 @@ use crate::geometry::{FontFace, PageFormat, Rgb, ThemePalette};
 use crate::jpeg::{parse_and_validate_jpeg_base64, ValidatedJpeg};
 use crate::money::format_money_minor;
 use crate::qr::encode_qr;
+use crate::shaping::is_rtl_dominant;
 use crate::spec::{BannerTone, DocumentBlock, DocumentSpec, SecurityLimits, TextAlign};
 
 struct FlowEngine<'a> {
@@ -745,14 +746,12 @@ impl<'a> FlowEngine<'a> {
                     13.0
                 };
 
-                let mut wrapped = Vec::new();
+                let mut wrapped: Vec<(String, bool)> = Vec::new();
                 for para in paragraphs {
-                    wrapped.extend(wrap_text_to_width_pt(
-                        para,
-                        FontFace::Regular,
-                        font_sz,
-                        inner_w,
-                    ));
+                    let rtl = is_rtl_dominant(para);
+                    for ln in wrap_text_to_width_pt(para, FontFace::Regular, font_sz, inner_w) {
+                        wrapped.push((ln, rtl));
+                    }
                 }
                 if wrapped.is_empty() {
                     return Ok(());
@@ -773,16 +772,27 @@ impl<'a> FlowEngine<'a> {
                     let p = self.current_page();
 
                     p.fill_and_stroke_rect(mx, cy, cw, box_h, pal.card_bg, 0.6, pal.border);
-                    for (offset, line_str) in wrapped[idx..idx + take_n].iter().enumerate() {
+                    for (offset, (line_str, rtl)) in wrapped[idx..idx + take_n].iter().enumerate() {
                         let ly = cy + 12.5 + (offset as f64) * line_step;
-                        p.text(
-                            line_str,
-                            mx + 10.0,
-                            ly,
-                            FontFace::Regular,
-                            font_sz,
-                            pal.ink_body,
-                        );
+                        if *rtl {
+                            p.text_right(
+                                line_str,
+                                mx + cw - 10.0,
+                                ly,
+                                FontFace::Regular,
+                                font_sz,
+                                pal.ink_body,
+                            );
+                        } else {
+                            p.text(
+                                line_str,
+                                mx + 10.0,
+                                ly,
+                                FontFace::Regular,
+                                font_sz,
+                                pal.ink_body,
+                            );
+                        }
                     }
 
                     self.cursor_y += box_h + 12.0;

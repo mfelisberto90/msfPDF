@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+title: "msfPDF: Sub-Millisecond Zero-Dependency %PDF-1.4 Vector Document Engine"
+message: "If you use msfPDF in software, benchmarks, or research, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: Felisberto
+    given-names: Murilo
+    affiliation: "Edinburgh, Scotland, United Kingdom"
+version: 0.2.0
+date-released: "2026-11-03"
+license: MIT
+repository-code: "https://github.com/mfelisberto90/msfPDF"
+url: "https://mfelisberto90.github.io/msfPDF/"
+abstract: >-
+  Clean-room, sub-millisecond (0.16-0.52 ms) ISO 32000-1 (%PDF-1.4) vector document compiler
+  with 1:1 byte parity across Rust, zero-dependency Web-Standard TypeScript, and a standalone CLI.
+  Provides WinAnsi 7-bit octal encoding, dynamic 2048-UPM Type 3 vector glyph subsetting for
+  Russian/Slavic Cyrillic and connected Arabic RTL (with contextual shaping, Lam-Alef ligatures,
+  UAX #9 BiDi reordering, and searchable /ToUnicode CMaps), pure GF(256) Reed-Solomon vector QR codes,
+  integer minor-unit currency formatting, and atomic 0600 multi-tenant vault storage.
+keywords:
+  - pdf-generation
+  - pdf-1.4
+  - zero-dependency
+  - rust
+  - typescript
+  - arabic-shaping
+  - rtl
+  - cyrillic
+  - vector-qr-code
+  - ssrf-prevention
+  - fintech
+  - multi-tenant-security

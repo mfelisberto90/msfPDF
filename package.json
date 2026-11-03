@@ -1,13 +1,39 @@
 {
   "name": "msfpdf",
-  "version": "0.1.0",
-  "description": "Sub-millisecond zero-dependency %PDF-1.4 vector document engine, declarative JSON layout compiler, pure vector QR codes, and multi-tenant 0600 vault",
+  "version": "0.2.0",
+  "description": "Sub-millisecond zero-dependency %PDF-1.4 vector document engine with Latin, Russian Cyrillic & connected Arabic RTL shaping, pure vector QR codes, and 0600 multi-tenant vault",
   "license": "MIT",
   "author": "Murilo Felisberto",
+  "homepage": "https://mfelisberto90.github.io/msfPDF/",
   "repository": {
     "type": "git",
     "url": "https://github.com/mfelisberto90/msfPDF.git"
   },
+  "bugs": {
+    "url": "https://github.com/mfelisberto90/msfPDF/issues"
+  },
+  "keywords": [
+    "pdf",
+    "pdf-generator",
+    "pdf-generation",
+    "invoice-generator",
+    "receipt-generator",
+    "zero-dependency",
+    "cloudflare-workers",
+    "edge-runtime",
+    "arabic-pdf",
+    "rtl-pdf",
+    "cyrillic-pdf",
+    "russian-pdf",
+    "zatca",
+    "qr-code",
+    "vector-pdf",
+    "ssrf-safe",
+    "fintech",
+    "multi-tenant",
+    "typescript",
+    "rust"
+  ],
   "type": "module",
   "exports": {
     ".": "./packages/ts/src/index.ts",
@@ -19,7 +45,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test:ts": "node --experimental-strip-types --test packages/ts/tests/msfpdf.test.ts",
-    "bench:ts": "node --experimental-strip-types packages/ts/src/bench.ts"
+    "bench:ts": "node --experimental-strip-types packages/ts/src/bench.ts",
+    "build:showcase": "node scripts/build-showcase-bundle.mjs"
   },
   "dependencies": {},
   "devDependencies": {

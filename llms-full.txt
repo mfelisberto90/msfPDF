@@ -1,0 +1,176 @@
+# msfPDF — Complete Technical Reference for LLMs & Coding Agents (`v0.2.0`)
+
+- **Repository:** https://github.com/mfelisberto90/msfPDF
+- **Interactive Showcase:** https://mfelisberto90.github.io/msfPDF/
+- **JSON Schema:** https://mfelisberto90.github.io/msfPDF/schemas/document-spec.schema.json
+- **Licence:** MIT (Author: Murilo Felisberto, Edinburgh, Scotland, UK)
+
+---
+
+## 1. What Problem `msfPDF` Solves
+
+1. **Eliminates 500 MB Headless Browsers & SSRF:** Generating invoices, receipts, or contracts with Puppeteer/Playwright/wkhtmltopdf consumes `300–800 MB` RAM, adds `400–2,500 ms` latency, and exposes servers to HTML/CSS/SVG Server-Side Request Forgery (`169.254.169.254`) and Local File Inclusion (LFI). `msfPDF` parses strictly typed JSON (`DocumentSpec`) with zero network/DOM surface.
+2. **Zero `xref` Byte-Offset Drift Across Scripts (`Latin` + `Русский` + `العربية`):**
+   - Standard Latin & Western European characters (`£`, `€`, `ç`, `ã`, `m²`, `—`) are mapped to 7-bit ASCII `/WinAnsiEncoding` octal escapes (`\243`, `\200`, `\347`, `\343`, `\262`, `\227`).
+   - **Russian & Slavic Cyrillic** (`А-Я`, `а-я`, `Ё`, `ё`, `₽`, `№`) and **Connected Arabic RTL** (`العربية` contextual `Isolated`/`Initial`/`Medial`/`Final` joining + mandatory `لا`/`لأ`/`لإ`/`لآ` ligatures + UAX #9 BiDi visual reordering) are dynamically subsetted on-demand into `2048-UPM` `%PDF-1.4` Type 3 cubic Bézier vector fonts (`/MsfVectorRegular*`, `/MsfVectorBold*`) with `<HEX> Tj` streams and `/ToUnicode` CMaps.
+   - Pure Latin documents emit **zero** Type 3 font objects (`0` byte overhead). Every generated PDF remains **100% 7-bit ASCII** (`0x0A` and `0x20..=0x7E`), guaranteeing exact `xref` and `/Length` offsets in Adobe Acrobat, Ghostscript, Poppler (`pdftoppm`/`pdftotext`), Chrome PDFium, and Apple Preview.
+3. **1:1 Byte-Identical Polyglot Parity:** Feeding the same `DocumentSpec` JSON into `msfpdf-core` (Rust), `msfpdf` (TypeScript — `0` runtime `npm` dependencies), or `msfpdf render` (CLI) produces the **exact same SHA-256 `%PDF-1.4` byte buffer**.
+4. **Exact Integer Minor-Unit Currency Maths:** Binary floating-point numbers are banned in monetary totals. `format_money_minor` / `formatMoneyMinor` format exact signed integers (`pence`, `cents`, `centavos`, `kopecks`, `fils`, `halalas`, `yen`) across `GBP`, `EUR`, `USD`, `BRL`, `JPY`, `RUB`, `AED`, and `SAR`.
+5. **Pure Vector QR Codes (`GF(256)`):** Built-in ISO/IEC 18004 Reed-Solomon encoder (`0x11D`) with 8-mask penalty evaluation and horizontal run-length rectangle merging (`re f`) — sharp at any zoom with zero PNG/raster dependencies.
+
+---
+
+## 2. Measured Performance (Single Core, Linux x86_64)
+
+- **`msfpdf-core` (Rust, standard A4):** `0.16 ms` P50 (`~6,300 docs/s/core`), `8.8 KB` PDF, `~16 KB` RAM buffer.
+- **`msfpdf-core` (Rust, A4 + Vector QR):** `0.52 ms` P50 (`~1,900 docs/s/core`), `14.0 KB` PDF.
+- **`msfpdf` (TypeScript, Node 22 / Edge V8, A4 + Vector QR):** `0.79 ms` P50 (`~1,180 docs/s/core`), `14.0 KB` PDF.
+- **Trilingual English + Russian + Connected Arabic + Vector QR:** `~2.2 ms` TypeScript / `< 1.1 ms` Rust, `100%` SHA-256 identical.
+
+---
+
+## 3. TypeScript / JavaScript Edge & Server Quickstart (`0` Dependencies)
+
+Works unmodified in **Node.js 22+**, **Bun**, **Deno**, **Cloudflare Workers**, **Vercel Edge**, and **Browsers**:
+
+```typescript
+import { renderDocument, renderDocumentJson, formatMoneyMinor } from './packages/ts/src/index.ts';
+import { TenantPdfVault } from './packages/ts/src/vault.ts';
+
+const pdfBytes: Uint8Array = renderDocument({
+  page_format: 'a4', // 'a4' | 'letter' | 'thermal80mm'
+  theme: 'navy_fintech', // 'navy_fintech' | 'emerald_editorial' | 'slate_minimal' | 'crimson_compliance'
+  metadata: {
+    issuer_name: 'Meridian Clearing House Ltd • ميريديان للتسوية',
+    document_code: '#GLB-2026-9042',
+    issued_at_label: '03 Nov 2026',
+  },
+  blocks: [
+    {
+      type: 'hero_header',
+      kicker: 'MULTILINGUAL TAX INVOICE • СЧЁТ-ФАКТУРА • فاتورة ضريبية',
+      title: 'Meridian Clearing House Ltd',
+      subtitle: 'Cross-Border Settlement — London • Dubai DIFC • Алматы',
+      badge_label: 'CLEARING REF / №',
+      badge_code: '#GLB-2026-9042',
+      badge_meta: '03/11/2026 • AED / RUB / GBP',
+    },
+    {
+      type: 'bento_grid',
+      columns: 2,
+      cards: [
+        {
+          primary_label: 'MENA COUNTERPARTY • الطرف المتعاقد',
+          primary_value: 'شركة الخليج للأنظمة السحابية ذ.م.م',
+          secondary_label: 'JURISDICTION',
+          secondary_value: 'Dubai International Financial Centre • دبي',
+        },
+        {
+          primary_label: 'EURASIA NODE • КОНТРАГЕНТ',
+          primary_value: 'ООО «Северный Контур Технолоджи»',
+          secondary_label: 'УЗЕЛ РАСЧЁТОВ',
+          secondary_value: 'Пресненская наб. 12 • № 04',
+        },
+      ],
+    },
+    {
+      type: 'financial_summary',
+      currency: 'AED',
+      rows: [
+        { label: 'Net Clearing Subtotal • Промежуточный итог • المجموع الفرعي', amount_minor: 1_850_000 },
+        { label: 'GCC Standard VAT (5.0%) • ضريبة القيمة المضافة', amount_minor: 92_500 },
+        { label: 'RUB Spot Reference • Справочный курс', text_value: formatMoneyMinor(51_481_250, 'RUB'), emphasize: true },
+      ],
+    },
+    {
+      type: 'callout_banner',
+      title: 'TOTAL SETTLEMENT DUE • ИТОГО К ОПЛАТЕ • الإجمالي المستحق',
+      subtitle: 'SWIFT / UAEFTS Instant Settlement within 15 calendar days',
+      right_value: formatMoneyMinor(1_942_500, 'AED'), // "AED 19,425.00"
+      tone: 'accent',
+    },
+    {
+      type: 'qr_verification',
+      payload: 'https://verify.meridianclearing.example/doc/GLB-2026-9042',
+      headline: 'CRYPTOGRAPHIC VERIFICATION • ПРОВЕРКА • التحقق الرقمي',
+      details: 'Scan vector QR to verify SHA-256 ledger digest.',
+      code_display: 'SHA256: 4E19-C80A-77B2-D301',
+    },
+  ],
+});
+
+// Optional Node/Bun multi-tenant 0600 atomic disk vault with 160-bit CSPRNG token:
+const vault = new TenantPdfVault('./.vault-data', 'invoice');
+const issued = await vault.issueDocument('tenant_dubai_01', {
+  metadata: { issuer_name: 'Meridian Ltd', document_code: 'INV-1', issued_at_label: '2026-11-03' },
+  blocks: [{ type: 'divider' }],
+});
+// Read back strictly scoped to owning tenant (cross-tenant IDs & '../' fail closed):
+const verifiedBytes = await vault.readDocument('tenant_dubai_01', issued.token);
+```
+
+---
+
+## 4. Rust API (`msfpdf-core`)
+
+```rust
+use msfpdf_core::{format_money_minor, render_document_json, Currency, SecurityLimits, TenantPdfVault};
+
+fn example(raw_json: &[u8]) -> Result<Vec<u8>, msfpdf_core::PdfError> {
+    assert_eq!(format_money_minor(45_000_050, Currency::RUB), "450 000,50 ₽");
+    assert_eq!(format_money_minor(1_942_500, Currency::AED), "AED 19,425.00");
+    render_document_json(raw_json, SecurityLimits::default())
+}
+```
+
+---
+
+## 5. Standalone CLI (`msfpdf` — `< 1 MB` Release Binary)
+
+```bash
+./scripts/build-release.sh -p msfpdf-cli
+
+# Compile file or stdin -> stdout for Python / PHP / Go / Ruby backends:
+./target/release/msfpdf render --in examples/global-multilingual-invoice.json --out multilingual.pdf
+cat examples/uk-b2b-invoice.json | ./target/release/msfpdf render --in - --out invoice.pdf
+
+# Issue into atomic 0600 multi-tenant vault:
+./target/release/msfpdf vault-issue --vault-dir ./.vault --prefix inv --tenant tenant_uk_01 --in examples/uk-b2b-invoice.json
+
+# Run single-core latency benchmark:
+./target/release/msfpdf bench --iterations 5000
+```
+
+---
+
+## 6. Complete `DocumentSpec` Block Reference
+
+Top-level `DocumentSpec` properties:
+- `page_format`: `"a4"` (default, `595.28 x 841.89 pt`), `"letter"` (`612 x 792 pt`), or `"thermal80mm"` (`226.77 x 510 pt`).
+- `theme`: `"navy_fintech"` (default), `"emerald_editorial"`, `"slate_minimal"`, or `"crimson_compliance"`.
+- `accent_hex_override`: Optional `"#RRGGBB"` override.
+- `metadata`: `{ issuer_name, document_code, issued_at_label, footer_notice?, page_counter_template? }`.
+- `continuation_header`: Optional `{ title, subtitle }` rendered at the top of automatically paginated continuation pages (`2..N`).
+- `blocks`: Ordered array of layout primitives (`max_blocks: 500`):
+  1. `hero_header`: `{ kicker, title, subtitle, badge_label?, badge_code?, badge_meta?, logo_jpeg_base64? }` (validates JPEG SOF0/SOF2 dimensions without libjpeg).
+  2. `section_heading`: `{ title }` (enforces keep-with-next orphan protection).
+  3. `bento_grid`: `{ columns?: 1|2|3, cards: [{ primary_label, primary_value, secondary_label?, secondary_value? }] }`.
+  4. `data_table`: `{ columns: [{ header, weight?, align?: 'left'|'center'|'right', bold_values? }], rows: string[][], zebra?: boolean }` (repeats table headers automatically across page breaks).
+  5. `financial_summary`: `{ currency: 'GBP'|'EUR'|'USD'|'BRL'|'JPY'|'RUB'|'AED'|'SAR', rows: [{ label, amount_minor?: integer, currency?, text_value?, emphasize? }] }`.
+  6. `callout_banner`: `{ title, subtitle, right_value?, tone?: 'accent'|'warning'|'danger'|'neutral' }`.
+  7. `clause_list`: `{ paragraphs: string[] }` (wraps logically; RTL-dominant Arabic clauses right-align automatically inside the editorial card).
+  8. `qr_verification`: `{ payload, headline, details, code_display? }`.
+  9. `signature_grid`: `{ heading?, signers: [{ role_label, party_name }] }`.
+  10. `key_value_list`: `{ rows: [{ label, value, emphasize? }], dashed_dividers?: boolean }`.
+  11. `divider`: `{}`.
+  12. `spacer`: `{ height_pt: 2..200 }`.
+
+---
+
+## 7. Security Ceilings (`SecurityLimits`)
+
+- `max_input_bytes` / `maxInputBytes`: `262,144` (`256 KiB`) checked *before* JSON parsing.
+- `max_pages` / `maxPages`: `50` pages.
+- `max_blocks` / `maxBlocks`: `500` blocks.
+- `max_table_rows` / `maxTableRows`: `1,000` rows per table.
+- Embedded JPEG logos: `<= 256 KiB` each, max `8` images, Grayscale/RGB SOF0/SOF2 header validation, `<= 4096 x 4096 px`.
