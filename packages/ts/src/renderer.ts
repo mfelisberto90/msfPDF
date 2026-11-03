@@ -5,8 +5,15 @@ import {
   truncateToWidthPt,
   wrapTextToWidthPt,
 } from './encoding.ts';
+import {
+  lookupVectorGlyph,
+  VECTOR_FONT_BBOX,
+  VECTOR_FONT_MATRIX,
+  VECTOR_UPM,
+} from './glyphsData.ts';
 import { encodeQr } from './qr.ts';
 import type { QrMatrix } from './qr.ts';
+import { isRtlDominant, shapeAndReorderLine } from './shaping.ts';
 import type {
   BannerTone,
   DocumentSpec,
@@ -283,11 +290,48 @@ function parseAndValidateJpegBase64(b64: string): ValidatedJpeg {
   throw new MsfPdfError('INVALID_IMAGE', 'no valid SOF0/SOF2 frame header found in JPEG');
 }
 
+type PageOp =
+  | { kind: 'raw'; line: string }
+  | {
+      kind: 'vector';
+      bold: boolean;
+      size: number;
+      color: Rgb;
+      x: number;
+      y: number;
+      cps: number[];
+    };
+
+type MixedRun = { kind: 'win'; text: string } | { kind: 'vec'; cps: number[] };
+
+function splitMixedRuns(visual: string): MixedRun[] {
+  const runs: MixedRun[] = [];
+  for (const ch of visual) {
+    const cp = ch.codePointAt(0) ?? 32;
+    if (lookupVectorGlyph(cp) !== undefined) {
+      const last = runs[runs.length - 1];
+      if (last && last.kind === 'vec') {
+        last.cps.push(cp);
+      } else {
+        runs.push({ kind: 'vec', cps: [cp] });
+      }
+    } else {
+      const last = runs[runs.length - 1];
+      if (last && last.kind === 'win') {
+        last.text += ch;
+      } else {
+        runs.push({ kind: 'win', text: ch });
+      }
+    }
+  }
+  return runs;
+}
+
 class PdfPageOps {
   readonly pageW: number;
   readonly pageH: number;
   readonly marginX: number;
-  readonly ops: string[] = [];
+  readonly ops: PageOp[] = [];
 
   constructor(pageW: number, pageH: number, marginX: number) {
     this.pageW = pageW;
@@ -295,18 +339,22 @@ class PdfPageOps {
     this.marginX = marginX;
   }
 
+  private pushRaw(line: string): void {
+    this.ops.push({ kind: 'raw', line });
+  }
+
   fillRect(x: number, yTop: number, w: number, h: number, color: Rgb): void {
     const y = this.pageH - yTop - h;
-    this.ops.push(`${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} rg`);
-    this.ops.push(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
+    this.pushRaw(`${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} rg`);
+    this.pushRaw(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
   }
 
   strokeRect(x: number, yTop: number, w: number, h: number, lineW: number, color: Rgb): void {
     const y = this.pageH - yTop - h;
-    this.ops.push(
+    this.pushRaw(
       `${lineW.toFixed(2)} w ${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} RG`
     );
-    this.ops.push(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re S`);
+    this.pushRaw(`${x.toFixed(2)} ${y.toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re S`);
   }
 
   fillAndStrokeRect(
@@ -325,10 +373,10 @@ class PdfPageOps {
   line(x1: number, yTop1: number, x2: number, yTop2: number, lineW: number, color: Rgb): void {
     const y1 = this.pageH - yTop1;
     const y2 = this.pageH - yTop2;
-    this.ops.push(
+    this.pushRaw(
       `${lineW.toFixed(2)} w ${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} RG`
     );
-    this.ops.push(`${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S`);
+    this.pushRaw(`${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S`);
   }
 
   dashedLine(
@@ -341,21 +389,67 @@ class PdfPageOps {
   ): void {
     const y1 = this.pageH - yTop1;
     const y2 = this.pageH - yTop2;
-    this.ops.push('q [2.5 2.5] 0 d');
-    this.ops.push(
+    this.pushRaw('q [2.5 2.5] 0 d');
+    this.pushRaw(
       `${lineW.toFixed(2)} w ${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} RG`
     );
-    this.ops.push(`${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S Q`);
+    this.pushRaw(`${x1.toFixed(2)} ${y1.toFixed(2)} m ${x2.toFixed(2)} ${y2.toFixed(2)} l S Q`);
   }
 
   text(content: string, x: number, yTop: number, font: FontFace, size: number, color: Rgb): void {
     const y = this.pageH - yTop;
-    this.ops.push('BT');
-    this.ops.push(`/${fontAlias(font)} ${size.toFixed(2)} Tf`);
-    this.ops.push(`${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} rg`);
-    this.ops.push(`1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm`);
-    this.ops.push(`(${pdfEscapeWinAnsi(content)}) Tj`);
-    this.ops.push('ET');
+    const visual = shapeAndReorderLine(content);
+    let hasVector = false;
+    for (const ch of visual) {
+      if (lookupVectorGlyph(ch.codePointAt(0) ?? 32) !== undefined) {
+        hasVector = true;
+        break;
+      }
+    }
+
+    if (!hasVector) {
+      this.pushRaw('BT');
+      this.pushRaw(`/${fontAlias(font)} ${size.toFixed(2)} Tf`);
+      this.pushRaw(`${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} rg`);
+      this.pushRaw(`1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm`);
+      this.pushRaw(`(${pdfEscapeWinAnsi(visual)}) Tj`);
+      this.pushRaw('ET');
+      return;
+    }
+
+    const isBold = font === 'bold';
+    let curX = x;
+    for (const run of splitMixedRuns(visual)) {
+      if (run.kind === 'win') {
+        const segW = estimateFontWidthPt(run.text, font, size);
+        this.pushRaw('BT');
+        this.pushRaw(`/${fontAlias(font)} ${size.toFixed(2)} Tf`);
+        this.pushRaw(`${color[0].toFixed(3)} ${color[1].toFixed(3)} ${color[2].toFixed(3)} rg`);
+        this.pushRaw(`1 0 0 1 ${curX.toFixed(2)} ${y.toFixed(2)} Tm`);
+        this.pushRaw(`(${pdfEscapeWinAnsi(run.text)}) Tj`);
+        this.pushRaw('ET');
+        curX += segW;
+      } else {
+        let funits = 0;
+        for (const cp of run.cps) {
+          const rec = lookupVectorGlyph(cp);
+          if (rec !== undefined) {
+            funits += isBold ? rec.boldAdv : rec.regularAdv;
+          }
+        }
+        const segW = (funits / VECTOR_UPM) * size;
+        this.ops.push({
+          kind: 'vector',
+          bold: isBold,
+          size,
+          color,
+          x: curX,
+          y,
+          cps: run.cps,
+        });
+        curX += segW;
+      }
+    }
   }
 
   textRight(
@@ -393,7 +487,7 @@ class PdfPageOps {
     this.fillRect(xLeft, yTop, boxSizePt, boxSizePt, bg);
     const quiet = 2;
     const modPt = boxSizePt / (qr.size + quiet * 2);
-    this.ops.push(`${fg[0].toFixed(3)} ${fg[1].toFixed(3)} ${fg[2].toFixed(3)} rg`);
+    this.pushRaw(`${fg[0].toFixed(3)} ${fg[1].toFixed(3)} ${fg[2].toFixed(3)} rg`);
 
     for (let r = 0; r < qr.size; r++) {
       let c = 0;
@@ -408,26 +502,105 @@ class PdfPageOps {
         const ryTop = yTop + (r + quiet) * modPt;
         const ryPdf = this.pageH - ryTop - modPt;
         const rw = (c - startC) * modPt;
-        this.ops.push(
+        this.pushRaw(
           `${rx.toFixed(3)} ${ryPdf.toFixed(3)} ${rw.toFixed(3)} ${modPt.toFixed(3)} re`
         );
       }
     }
-    this.ops.push('f');
+    this.pushRaw('f');
   }
 
   drawJpeg(alias: string, x: number, yTop: number, w: number, h: number): void {
     const y = this.pageH - yTop - h;
-    this.ops.push(
+    this.pushRaw(
       `q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm /${alias} Do Q`
     );
   }
 }
 
+interface VectorFontBank {
+  alias: string;
+  pdfName: string;
+  bold: boolean;
+  cps: number[];
+}
+
+class VectorSubsetPool {
+  readonly banks: VectorFontBank[] = [];
+
+  resolveSlot(bold: boolean, cp: number): readonly [string, number] {
+    for (const bank of this.banks) {
+      if (bank.bold === bold) {
+        const pos = bank.cps.indexOf(cp);
+        if (pos !== -1) {
+          return [bank.alias, pos + 1];
+        }
+      }
+    }
+    for (const bank of this.banks) {
+      if (bank.bold === bold && bank.cps.length < 254) {
+        bank.cps.push(cp);
+        return [bank.alias, bank.cps.length];
+      }
+    }
+    const sameWeightIdx = this.banks.filter((b) => b.bold === bold).length;
+    const baseAlias = bold ? 'F5' : 'F4';
+    const alias = sameWeightIdx === 0 ? baseAlias : `${baseAlias}_${sameWeightIdx}`;
+    const pdfName = bold
+      ? `MsfVectorBold${sameWeightIdx}`
+      : `MsfVectorRegular${sameWeightIdx}`;
+    this.banks.push({ alias, pdfName, bold, cps: [cp] });
+    return [alias, 1];
+  }
+}
+
 function assemblePdf14(pages: PdfPageOps[], jpegs: ValidatedJpeg[]): Uint8Array {
+  const pool = new VectorSubsetPool();
+  const resolvedPageStreams: string[] = [];
+
+  for (const p of pages) {
+    const lines: string[] = [];
+    for (const op of p.ops) {
+      if (op.kind === 'raw') {
+        lines.push(op.line);
+      } else {
+        let curX = op.x;
+        let idx = 0;
+        while (idx < op.cps.length) {
+          const [alias, firstCode] = pool.resolveSlot(op.bold, op.cps[idx]);
+          let hex = firstCode.toString(16).toUpperCase().padStart(2, '0');
+          const firstRec = lookupVectorGlyph(op.cps[idx]);
+          let runFunits = firstRec ? (op.bold ? firstRec.boldAdv : firstRec.regularAdv) : 0;
+          idx += 1;
+
+          while (idx < op.cps.length) {
+            const [nextAlias, nextCode] = pool.resolveSlot(op.bold, op.cps[idx]);
+            if (nextAlias !== alias) break;
+            hex += nextCode.toString(16).toUpperCase().padStart(2, '0');
+            const rec = lookupVectorGlyph(op.cps[idx]);
+            runFunits += rec ? (op.bold ? rec.boldAdv : rec.regularAdv) : 0;
+            idx += 1;
+          }
+
+          lines.push('BT');
+          lines.push(`/${alias} ${op.size.toFixed(2)} Tf`);
+          lines.push(
+            `${op.color[0].toFixed(3)} ${op.color[1].toFixed(3)} ${op.color[2].toFixed(3)} rg`
+          );
+          lines.push(`1 0 0 1 ${curX.toFixed(2)} ${op.y.toFixed(2)} Tm`);
+          lines.push(`<${hex}> Tj`);
+          lines.push('ET');
+          curX += (runFunits / VECTOR_UPM) * op.size;
+        }
+      }
+    }
+    resolvedPageStreams.push(lines.join('\n') + '\n');
+  }
+
   const pageCount = Math.max(1, pages.length);
   const imgCount = jpegs.length;
-  const firstPageId = 6 + imgCount;
+  const vectorObjCount = pool.banks.reduce((acc, b) => acc + 2 + b.cps.length, 0);
+  const firstPageId = 6 + imgCount + vectorObjCount;
   const objects: string[] = [];
 
   const kidsRefs = Array.from({ length: pageCount }, (_, i) => `${firstPageId + i * 2} 0 R`).join(
@@ -460,13 +633,61 @@ function assemblePdf14(pages: PdfPageOps[], jpegs: ValidatedJpeg[]): Uint8Array 
     xobjDict += ' >>';
   }
 
+  let extraFontRefs = '';
+  let nextObjId = 6 + imgCount;
+  for (const bank of pool.banks) {
+    const fontObjId = nextObjId;
+    const cmapObjId = nextObjId + 1;
+    const firstProcId = nextObjId + 2;
+    nextObjId += 2 + bank.cps.length;
+
+    extraFontRefs += ` /${bank.alias} ${fontObjId} 0 R`;
+
+    const charProcs: string[] = [];
+    const diffs: string[] = ['1'];
+    const widths: string[] = [];
+    const bfchars: string[] = [];
+
+    bank.cps.forEach((cp, i) => {
+      const code = i + 1;
+      const procId = firstProcId + i;
+      const rec = lookupVectorGlyph(cp)!;
+      const adv = bank.bold ? rec.boldAdv : rec.regularAdv;
+      charProcs.push(`/g${code} ${procId} 0 R`);
+      diffs.push(`/g${code}`);
+      widths.push(String(adv));
+      bfchars.push(`<${code.toString(16).toUpperCase().padStart(2, '0')}> <${rec.toUnicodeHex}>`);
+    });
+
+    objects.push(
+      `${fontObjId} 0 obj\n<< /Type /Font /Subtype /Type3 /Name /${bank.pdfName} /FontBBox ${VECTOR_FONT_BBOX} /FontMatrix ${VECTOR_FONT_MATRIX} /CharProcs << ${charProcs.join(' ')} >> /Encoding << /Type /Encoding /Differences [${diffs.join(' ')}] >> /FirstChar 1 /LastChar ${bank.cps.length} /Widths [${widths.join(' ')}] /ToUnicode ${cmapObjId} 0 R >>\nendobj\n`
+    );
+
+    const cmapStream =
+      `/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<01> <FE>\nendcodespacerange\n${bfchars.length} beginbfchar\n` +
+      bfchars.join('\n') +
+      `\nendbfchar\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n`;
+    objects.push(
+      `${cmapObjId} 0 obj\n<< /Length ${cmapStream.length} >>\nstream\n${cmapStream}endstream\nendobj\n`
+    );
+
+    bank.cps.forEach((cp, i) => {
+      const procId = firstProcId + i;
+      const rec = lookupVectorGlyph(cp)!;
+      const procBody = (bank.bold ? rec.boldProc : rec.regularProc) + '\n';
+      objects.push(
+        `${procId} 0 obj\n<< /Length ${procBody.length} >>\nstream\n${procBody}endstream\nendobj\n`
+      );
+    });
+  }
+
   for (let i = 0; i < pageCount; i++) {
     const p = pages[i];
     const pageObjId = firstPageId + i * 2;
     const contentObjId = pageObjId + 1;
-    const streamBody = p.ops.join('\n') + '\n';
+    const streamBody = resolvedPageStreams[i];
     objects.push(
-      `${pageObjId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${p.pageW.toFixed(2)} ${p.pageH.toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >>${xobjDict} >> /Contents ${contentObjId} 0 R >>\nendobj\n`
+      `${pageObjId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${p.pageW.toFixed(2)} ${p.pageH.toFixed(2)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R${extraFontRefs} >>${xobjDict} >> /Contents ${contentObjId} 0 R >>\nendobj\n`
     );
     objects.push(
       `${contentObjId} 0 obj\n<< /Length ${streamBody.length} >>\nstream\n${streamBody}endstream\nendobj\n`
@@ -1026,9 +1247,12 @@ export function renderDocument(
       case 'clause_list': {
         const fontSz = isThermal ? 7.4 : 8.4;
         const lineStep = isThermal ? 11.0 : 13.0;
-        const wrapped: string[] = [];
+        const wrapped: Array<{ text: string; rtl: boolean }> = [];
         for (const para of block.paragraphs) {
-          wrapped.push(...wrapTextToWidthPt(para, 'regular', fontSz, contentW - 20));
+          const rtl = isRtlDominant(para);
+          for (const ln of wrapTextToWidthPt(para, 'regular', fontSz, contentW - 20)) {
+            wrapped.push({ text: ln, rtl });
+          }
         }
         if (wrapped.length === 0) break;
 
@@ -1042,14 +1266,13 @@ export function renderDocument(
           const p = currentPage();
           p.fillAndStrokeRect(marginX, cursorY, contentW, boxH, palette.cardBg, 0.6, palette.border);
           for (let offset = 0; offset < takeN; offset++) {
-            p.text(
-              wrapped[idx + offset],
-              marginX + 10,
-              cursorY + 12.5 + offset * lineStep,
-              'regular',
-              fontSz,
-              palette.inkBody
-            );
+            const item = wrapped[idx + offset];
+            const ly = cursorY + 12.5 + offset * lineStep;
+            if (item.rtl) {
+              p.textRight(item.text, marginX + contentW - 10, ly, 'regular', fontSz, palette.inkBody);
+            } else {
+              p.text(item.text, marginX + 10, ly, 'regular', fontSz, palette.inkBody);
+            }
           }
           cursorY += boxH + 12;
           idx += takeN;

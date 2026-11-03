@@ -1,11 +1,15 @@
 [package]
 name = "msfpdf-cli"
-description = "Command-line JSON-to-%PDF-1.4 compiler, stdin/stdout pipe adapter, and latency benchmark runner for msfPDF"
+description = "Standalone <1 MB JSON-to-%PDF-1.4 CLI compiler with Latin, Russian Cyrillic & connected Arabic RTL support"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+keywords = ["pdf", "cli", "invoice", "arabic", "cyrillic"]
+categories = ["command-line-utilities", "rendering::data-formats"]
 
 [[bin]]
 name = "msfpdf"

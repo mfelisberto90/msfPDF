@@ -5,7 +5,7 @@ export type ThemePreset =
   | 'slate_minimal'
   | 'crimson_compliance';
 export type FontFace = 'regular' | 'bold' | 'mono';
-export type Currency = 'GBP' | 'EUR' | 'USD' | 'BRL' | 'JPY';
+export type Currency = 'GBP' | 'EUR' | 'USD' | 'BRL' | 'JPY' | 'RUB' | 'AED' | 'SAR';
 export type TextAlign = 'left' | 'center' | 'right';
 export type BannerTone = 'accent' | 'warning' | 'danger' | 'neutral';
 

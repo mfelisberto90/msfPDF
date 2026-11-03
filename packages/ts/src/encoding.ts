@@ -1,3 +1,5 @@
+import { lookupVectorGlyph, VECTOR_UPM } from './glyphsData.ts';
+import { hasArabicOrRtl, shapeArabicLogical } from './shaping.ts';
 import type { Currency, FontFace } from './types.ts';
 import { MsfPdfError } from './types.ts';
 
@@ -58,8 +60,12 @@ export function pdfEscapeWinAnsi(input: string): string {
         out += '\\' + code.toString(8).padStart(3, '0');
       } else if (ch === '✓' || ch === '✔') {
         out += '[x]';
+      } else if (ch === '✗' || ch === '✘') {
+        out += '[ ]';
       } else if (ch === '→') {
         out += '->';
+      } else if (ch === '←') {
+        out += '<-';
       } else {
         const folded = ch
           .normalize('NFD')
@@ -72,30 +78,48 @@ export function pdfEscapeWinAnsi(input: string): string {
   return out;
 }
 
+function afmWinAnsiUnit(ch: string, code: number): number {
+  if (' .,:;!|/\'\‘’ilIíìîï'.includes(ch)) return 0.278;
+  if (ch === 'j') return 0.222;
+  if ('frt()[]-–'.includes(ch)) return 0.333;
+  if (ch === '•') return 0.35;
+  if ('"“”'.includes(ch)) return 0.4;
+  if ('szcçJ'.includes(ch)) return 0.5;
+  if ('L1'.includes(ch)) return 0.556;
+  if ('mw'.includes(ch)) return 0.833;
+  if ('MW%‰'.includes(ch)) return 0.889;
+  if ('@—Œœ'.includes(ch)) return 0.98;
+  if ('GOQÓÔÕÒ'.includes(ch)) return 0.778;
+  if ('CDHNRUÇÑÚ'.includes(ch)) return 0.722;
+  if ((code >= 65 && code <= 90) || (code >= 0xc0 && code <= 0xdd)) return 0.667;
+  return 0.556;
+}
+
 export function estimateFontWidthPt(text: string, font: FontFace, sizePt: number): number {
-  if (font === 'mono') {
-    return Array.from(text).length * 0.6 * sizePt;
-  }
+  const effective = hasArabicOrRtl(text) ? shapeArabicLogical(text) : text;
+  let winAnsiUnits = 0;
+  let winAnsiCount = 0;
+  let vectorFunits = 0;
 
-  let units = 0;
-  for (const ch of text) {
+  for (const ch of effective) {
     const code = ch.codePointAt(0) ?? 32;
-    if (' .,:;!|\'‘’ilIíìîï'.includes(ch)) units += 0.278;
-    else if (ch === 'j') units += 0.222;
-    else if ('frt()[]-–'.includes(ch)) units += 0.333;
-    else if ('"“”'.includes(ch)) units += 0.4;
-    else if ('szcçJ'.includes(ch)) units += 0.5;
-    else if ('L1'.includes(ch)) units += 0.556;
-    else if ('mw'.includes(ch)) units += 0.833;
-    else if ('MW%‰'.includes(ch)) units += 0.889;
-    else if ('@—Œœ'.includes(ch)) units += 0.98;
-    else if ('GOQÓÔÕÒ'.includes(ch)) units += 0.778;
-    else if ('CDHNRUÇÑÚ'.includes(ch)) units += 0.722;
-    else if ((code >= 65 && code <= 90) || (code >= 0xc0 && code <= 0xdd)) units += 0.667;
-    else units += 0.556;
+    const rec = lookupVectorGlyph(code);
+    if (rec !== undefined) {
+      vectorFunits += font === 'bold' ? rec.boldAdv : rec.regularAdv;
+    } else {
+      winAnsiCount += 1;
+      if (font !== 'mono') {
+        winAnsiUnits += afmWinAnsiUnit(ch, code);
+      }
+    }
   }
 
-  return units * sizePt * (font === 'bold' ? 1.045 : 1.0);
+  const winPt =
+    font === 'mono'
+      ? winAnsiCount * 0.6 * sizePt
+      : winAnsiUnits * sizePt * (font === 'bold' ? 1.045 : 1.0);
+
+  return vectorFunits === 0 ? winPt : winPt + (vectorFunits / VECTOR_UPM) * sizePt;
 }
 
 export function truncateToWidthPt(
@@ -193,7 +217,8 @@ function groupDigits(digits: string, sep: string): string {
 }
 
 /**
- * Formats exact integer minor units (`pence`, `cents`, `centavos`, `yen`) without floating-point division.
+ * Formats exact integer minor units (`pence`, `cents`, `centavos`, `kopecks`, `fils`, `halalas`, `yen`)
+ * without floating-point division.
  */
 export function formatMoneyMinor(minorUnits: number | bigint, currency: Currency): string {
   if (typeof minorUnits === 'number' && !Number.isSafeInteger(minorUnits)) {
@@ -223,5 +248,11 @@ export function formatMoneyMinor(minorUnits: number | bigint, currency: Currency
       return `${sign}€${groupDigits(major, ',')}.${minor}`;
     case 'BRL':
       return `${sign}R$ ${groupDigits(major, '.')},${minor}`;
+    case 'RUB':
+      return `${sign}${groupDigits(major, ' ')},${minor} ₽`;
+    case 'AED':
+      return `${sign}AED ${groupDigits(major, ',')}.${minor}`;
+    case 'SAR':
+      return `${sign}SAR ${groupDigits(major, ',')}.${minor}`;
   }
 }

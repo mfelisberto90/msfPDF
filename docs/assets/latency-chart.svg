@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 350" width="1000" height="350" role="img" aria-labelledby="chartTitle chartDesc">
+  <title id="chartTitle">P50 PDF Compilation Latency Comparison (Logarithmic Scale)</title>
+  <desc id="chartDesc">msfPDF compiles a 2-page A4 invoice with vector QR code in 0.52 ms in Rust and 0.84 ms in TypeScript, compared with 18-45 ms for Typst, 180-420 ms for WeasyPrint, and 380-2400 ms for Headless Chromium.</desc>
+  <rect width="1000" height="350" rx="14" fill="#0a0d14"/>
+  <rect x="16" y="16" width="968" height="318" rx="10" fill="#131824"/>
+
+  <text x="40" y="54" fill="#e9edf3" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="700">Median P50 Compile Latency · 2-Page A4 Invoice + Vector QR</text>
+  <text x="40" y="78" fill="#9ba7b8" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="14">Lower is faster (log-normalized width · single CPU core · cold/warm server comparison)</text>
+
+  <!-- Row 1: msfPDF Rust -->
+  <text x="40" y="122" fill="#e9edf3" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700">msfPDF (Rust Core)</text>
+  <rect x="250" y="104" width="38" height="26" rx="5" fill="#5a9bfc"/>
+  <text x="300" y="122" fill="#5a9bfc" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="700">0.52 ms  ·  ~2.4 MB RAM  ·  0 crates  ·  1,896 docs/s/core</text>
+
+  <!-- Row 2: msfPDF TypeScript -->
+  <text x="40" y="162" fill="#e9edf3" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700">msfPDF (TypeScript)</text>
+  <rect x="250" y="144" width="54" height="26" rx="5" fill="#3b82f6"/>
+  <text x="316" y="162" fill="#93c5fd" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" font-weight="600">0.84 ms  ·  ~8.0 MB V8   ·  0 npm deps ·  Cloudflare Workers</text>
+
+  <!-- Row 3: PDFKit / jsPDF -->
+  <text x="40" y="202" fill="#9ba7b8" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="500">PDFKit / jsPDF</text>
+  <rect x="250" y="184" width="210" height="26" rx="5" fill="#222d42"/>
+  <text x="472" y="202" fill="#9ba7b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">14 – 35 ms  (needs .ttf font buffers for Arabic/Cyrillic + QR lib)</text>
+
+  <!-- Row 4: Typst Warm -->
+  <text x="40" y="242" fill="#9ba7b8" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="500">Typst CLI</text>
+  <rect x="250" y="224" width="250" height="26" rx="5" fill="#222d42"/>
+  <text x="512" y="242" fill="#9ba7b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">18 – 45 ms  (~45 MB RAM · external font files)</text>
+
+  <!-- Row 5: WeasyPrint -->
+  <text x="40" y="282" fill="#9ba7b8" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="500">WeasyPrint (Python)</text>
+  <rect x="250" y="264" width="445" height="26" rx="5" fill="#222d42"/>
+  <text x="707" y="282" fill="#9ba7b8" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">180 – 420 ms (~120 MB RAM)</text>
+
+  <!-- Row 6: Headless Chromium -->
+  <text x="40" y="318" fill="#9ba7b8" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="500">Headless Chromium</text>
+  <rect x="250" y="300" width="640" height="22" rx="5" fill="#334155"/>
+  <text x="900" y="316" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">380 – 2,400 ms</text>
+</svg>

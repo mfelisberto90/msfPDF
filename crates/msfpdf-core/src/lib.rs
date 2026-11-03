@@ -2,10 +2,12 @@ pub mod canvas;
 pub mod encoding;
 pub mod error;
 pub mod geometry;
+pub mod glyphs_data;
 pub mod jpeg;
 pub mod money;
 pub mod qr;
 pub mod renderer;
+pub mod shaping;
 pub mod spec;
 pub mod vault;
 
@@ -17,6 +19,9 @@ pub use geometry::{FontFace, PageFormat, Rgb, ThemePalette, ThemePreset};
 pub use money::{format_money_minor, Currency};
 pub use qr::{encode_qr, QrMatrix};
 pub use renderer::{render_document, render_document_json};
+pub use shaping::{
+    has_arabic_or_rtl, is_rtl_dominant, shape_and_reorder_line, shape_arabic_logical,
+};
 pub use spec::{
     BannerTone, BentoCardItem, ContinuationHeaderSpec, DocumentBlock, DocumentMetadata,
     DocumentSpec, FinancialLineItem, KeyValueRow, SecurityLimits, SignerSpec, TableColumnSpec,
@@ -94,6 +99,45 @@ mod tests {
         assert_eq!(format_money_minor(98_765, Currency::EUR), "€987.65");
         assert_eq!(format_money_minor(100_000, Currency::USD), "$1,000.00");
         assert_eq!(format_money_minor(15_800, Currency::JPY), "¥15,800");
+        assert_eq!(
+            format_money_minor(45_000_050, Currency::RUB),
+            "450 000,50 ₽"
+        );
+        assert_eq!(
+            format_money_minor(1_942_500, Currency::AED),
+            "AED 19,425.00"
+        );
+        assert_eq!(format_money_minor(750_000, Currency::SAR), "SAR 7,500.00");
+    }
+
+    #[test]
+    fn shapes_arabic_ligatures_and_renders_russian_and_arabic_in_7bit_ascii_type3() {
+        // Verify Lam-Alef ligature + contextual joining + BiDi number preservation
+        let logical = "فاتورة للأنظمة رقم 8841";
+        let shaped = shape_arabic_logical(logical);
+        assert!(
+            shaped.contains('\u{FEF8}'),
+            "ل + أ after joining ل must form final Lam-Alef-Hamza ligature U+FEF8"
+        );
+        let visual = shape_and_reorder_line(logical);
+        assert!(
+            visual.starts_with("8841 "),
+            "RTL visual line ending logically with 8841 must start visually on the left with LTR '8841 '"
+        );
+
+        let raw_json = include_bytes!("../../../examples/global-multilingual-invoice.json");
+        let pdf_bytes =
+            render_document_json(raw_json, SecurityLimits::default()).expect("renders trilingual");
+        assert_valid_xref_and_7bit_ascii(&pdf_bytes);
+        let text = std::str::from_utf8(&pdf_bytes).unwrap();
+        assert!(
+            text.contains("/Subtype /Type3"),
+            "multilingual document must emit dynamic Type 3 vector glyph subsets"
+        );
+        assert!(
+            text.contains("/ToUnicode"),
+            "multilingual Type 3 subsets must include /ToUnicode CMap for searchable UTF-8 extraction"
+        );
     }
 
     #[test]

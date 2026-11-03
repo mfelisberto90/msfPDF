@@ -9,5 +9,6 @@ dist/
 
 # Runtime & temporary vaults
 .vault-tmp/
+.taste-skill/
 *.tmp
 .DS_Store

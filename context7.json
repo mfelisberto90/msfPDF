@@ -1,0 +1,28 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "msfPDF",
+  "description": "Sub-millisecond zero-dependency %PDF-1.4 vector document engine in Rust and TypeScript with Latin, Russian Cyrillic, and connected Arabic RTL support.",
+  "folders": [
+    "examples",
+    "schemas",
+    "skills"
+  ],
+  "excludeFolders": [
+    "target",
+    "node_modules",
+    ".git",
+    "docs/assets"
+  ],
+  "excludeFiles": [
+    "Cargo.lock",
+    "package-lock.json",
+    "crates/msfpdf-core/src/glyphs_data.rs",
+    "packages/ts/src/glyphsData.ts",
+    "docs/msfpdf-browser.js"
+  ],
+  "rules": [
+    "Always pass exact integer minor units (e.g. 513000 for £5,130.00 or 1942500 for AED 19,425.00) to amount_minor and formatMoneyMinor; binary floats throw MsfPdfError('INVALID_SPEC').",
+    "Pass Arabic strings in standard logical UTF-8 order; msfPDF performs contextual Isolated/Initial/Medial/Final shaping, Lam-Alef ligatures, and UAX #9 BiDi visual reordering automatically.",
+    "Core TypeScript rendering (renderDocument, renderDocumentJson) has zero npm dependencies and runs identically in Node 22+, Bun, Deno, Cloudflare Workers, and browsers."
+  ]
+}
