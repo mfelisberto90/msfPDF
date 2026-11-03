@@ -5,9 +5,11 @@ use std::process::ExitCode;
 use std::time::Instant;
 
 use msfpdf_core::{
-    render_document, render_document_json, BannerTone, BentoCardItem, Currency, DocumentBlock,
-    DocumentMetadata, DocumentSpec, FinancialLineItem, PageFormat, SecurityLimits, SignerSpec,
-    TableColumnSpec, TenantPdfVault, TextAlign, ThemePreset,
+    compute_sha256_hex, decode_hex_exact, embed_audit_manifest, extract_audit_manifest,
+    generate_keypair, hex_encode, render_document, render_document_json, sign_pdf,
+    strip_embedded_audit, verify_manifest, verify_pdf, AuditManifest, BannerTone, BentoCardItem,
+    Currency, DocumentBlock, DocumentMetadata, DocumentSpec, FinancialLineItem, PageFormat,
+    SecurityLimits, SignerSpec, TableColumnSpec, TenantPdfVault, TextAlign, ThemePreset,
 };
 
 fn tune_linux_allocator() {
@@ -51,9 +53,36 @@ fn print_usage() {
          \x20 msfpdf render --in <spec.json | -> --out <output.pdf | -> [--max-pages N]\n\
          \x20 msfpdf vault-issue --vault <dir> --tenant <id> [--prefix doc] --in <spec.json | ->\n\
          \x20 msfpdf bench [--iterations 5000]\n\
+         \x20 msfpdf keygen [--out <keys.json>]\n\
+         \x20 msfpdf sign --in <doc.pdf | -> --key <seed_hex> [--identity <name>] [--timestamp <iso>] [--embed] [--out <out | ->]\n\
+         \x20 msfpdf verify --in <doc.pdf | -> --pubkey <pub_hex> [--sig <manifest.json | sig_hex>]\n\
          \x20 msfpdf --version",
         env!("CARGO_PKG_VERSION")
     );
+}
+
+fn current_utc_iso() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let days = secs / 86400;
+    let rem_secs = secs % 86400;
+    let hours = rem_secs / 3600;
+    let mins = (rem_secs % 3600) / 60;
+    let s = rem_secs % 60;
+    let z = days as i64 + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = (z - era * 146097) as u64;
+    let yoe = (doe - doe / 1024 + doe / 1461 - doe / 142024) / 365;
+    let y = yoe as i64 + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    format!("{y:04}-{m:02}-{d:02}T{hours:02}:{mins:02}:{s:02}Z")
 }
 
 fn build_benchmark_spec() -> DocumentSpec {
@@ -329,6 +358,185 @@ fn run() -> Result<(), String> {
                 "{{\"engine\":\"msfpdf-rust\",\"iterations\":{},\"p50_us\":{:.2},\"avg_us\":{:.2},\"p99_us\":{:.2},\"pdf_bytes\":{},\"docs_per_sec_single_core\":{}}}",
                 iterations, p50_us, avg_us, p99_us, byte_len, docs_per_sec
             );
+            Ok(())
+        }
+
+        "keygen" => {
+            let mut out_path: Option<&str> = None;
+            let mut i = 1usize;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--out" if i + 1 < args.len() => {
+                        out_path = Some(&args[i + 1]);
+                        i += 2;
+                    }
+                    other => return Err(format!("unrecognised flag '{other}'")),
+                }
+            }
+            let (seed, pubkey) = generate_keypair().map_err(|e| e.to_string())?;
+            let json = serde_json::json!({
+                "algorithm": "Ed25519",
+                "private_key_seed_hex": hex_encode(&seed),
+                "public_key_hex": hex_encode(&pubkey),
+            });
+            let formatted = serde_json::to_string_pretty(&json)
+                .map_err(|e| format!("json serialization failed: {e}"))?;
+            if let Some(path) = out_path {
+                fs::write(path, formatted.as_bytes())
+                    .map_err(|e| format!("cannot write '{path}': {e}"))?;
+            } else {
+                println!("{formatted}");
+            }
+            Ok(())
+        }
+
+        "sign" => {
+            let mut in_path = "-";
+            let mut out_path = "-";
+            let mut key_hex: Option<&str> = None;
+            let mut identity = "msfPDF Digital Signer";
+            let mut timestamp: Option<String> = None;
+            let mut embed = false;
+            let mut i = 1usize;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--in" if i + 1 < args.len() => {
+                        in_path = &args[i + 1];
+                        i += 2;
+                    }
+                    "--out" if i + 1 < args.len() => {
+                        out_path = &args[i + 1];
+                        i += 2;
+                    }
+                    "--key" if i + 1 < args.len() => {
+                        key_hex = Some(&args[i + 1]);
+                        i += 2;
+                    }
+                    "--identity" if i + 1 < args.len() => {
+                        identity = &args[i + 1];
+                        i += 2;
+                    }
+                    "--timestamp" if i + 1 < args.len() => {
+                        timestamp = Some(args[i + 1].clone());
+                        i += 2;
+                    }
+                    "--embed" => {
+                        embed = true;
+                        i += 1;
+                    }
+                    other => return Err(format!("unrecognised flag '{other}'")),
+                }
+            }
+            let raw_key = key_hex.ok_or("missing required --key <seed_hex>")?;
+            let seed_bytes: [u8; 32] = decode_hex_exact(raw_key).ok_or_else(|| {
+                "invalid --key hex: must be 64 hexadecimal characters (32 bytes)".to_string()
+            })?;
+
+            let limits = SecurityLimits::default();
+            let pdf_bytes = read_bounded_input(in_path, limits.max_input_bytes)?;
+            let ts = timestamp.unwrap_or_else(current_utc_iso);
+            let manifest = sign_pdf(&pdf_bytes, &seed_bytes, identity, Some(&ts))
+                .map_err(|e| e.to_string())?;
+
+            if embed {
+                let signed_pdf = embed_audit_manifest(&pdf_bytes, &manifest);
+                if out_path == "-" {
+                    let mut stdout = io::stdout().lock();
+                    stdout
+                        .write_all(&signed_pdf)
+                        .map_err(|e| format!("stdout write failed: {e}"))?;
+                } else {
+                    fs::write(out_path, &signed_pdf)
+                        .map_err(|e| format!("cannot write '{out_path}': {e}"))?;
+                }
+            } else {
+                let json = serde_json::to_string_pretty(&manifest)
+                    .map_err(|e| format!("json serialization failed: {e}"))?;
+                if out_path == "-" {
+                    println!("{json}");
+                } else {
+                    fs::write(out_path, json.as_bytes())
+                        .map_err(|e| format!("cannot write '{out_path}': {e}"))?;
+                }
+            }
+            Ok(())
+        }
+
+        "verify" => {
+            let mut in_path = "-";
+            let mut pubkey_hex: Option<&str> = None;
+            let mut sig_arg: Option<String> = None;
+            let mut i = 1usize;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--in" if i + 1 < args.len() => {
+                        in_path = &args[i + 1];
+                        i += 2;
+                    }
+                    "--pubkey" if i + 1 < args.len() => {
+                        pubkey_hex = Some(&args[i + 1]);
+                        i += 2;
+                    }
+                    "--sig" if i + 1 < args.len() => {
+                        sig_arg = Some(args[i + 1].clone());
+                        i += 2;
+                    }
+                    other => return Err(format!("unrecognised flag '{other}'")),
+                }
+            }
+
+            let raw_pub = pubkey_hex.ok_or("missing required --pubkey <hex>")?;
+            let pub_bytes: [u8; 32] = decode_hex_exact(raw_pub).ok_or_else(|| {
+                "invalid --pubkey hex: must be 64 hexadecimal characters (32 bytes)".to_string()
+            })?;
+
+            let limits = SecurityLimits::default();
+            let pdf_bytes = read_bounded_input(in_path, limits.max_input_bytes)?;
+
+            let (manifest, is_valid) = if let Some(sig) = sig_arg {
+                if let Ok(manifest_content) = fs::read_to_string(&sig) {
+                    let parsed: AuditManifest = serde_json::from_str(&manifest_content)
+                        .map_err(|e| format!("failed parsing manifest JSON file '{sig}': {e}"))?;
+                    let valid = verify_manifest(&pdf_bytes, &parsed).map_err(|e| e.to_string())?;
+                    (Some(parsed), valid)
+                } else if let Ok(parsed) = serde_json::from_str::<AuditManifest>(&sig) {
+                    let valid = verify_manifest(&pdf_bytes, &parsed).map_err(|e| e.to_string())?;
+                    (Some(parsed), valid)
+                } else if let Some(sig_bytes) = decode_hex_exact::<64>(&sig) {
+                    let valid = verify_pdf(&pdf_bytes, &pub_bytes, &sig_bytes)
+                        .map_err(|e| e.to_string())?;
+                    (None, valid)
+                } else {
+                    return Err("unrecognised --sig format: expected manifest JSON file, inline JSON, or 128-hex signature".to_string());
+                }
+            } else {
+                let extracted = extract_audit_manifest(&pdf_bytes).ok_or_else(|| {
+                    "no embedded %MsfAuditManifest found in PDF; provide --sig <manifest.json>"
+                        .to_string()
+                })?;
+                let valid = verify_manifest(&pdf_bytes, &extracted).map_err(|e| e.to_string())?;
+                (Some(extracted), valid)
+            };
+
+            let base_pdf = strip_embedded_audit(&pdf_bytes);
+            let sha256_hex = compute_sha256_hex(base_pdf);
+
+            if !is_valid {
+                eprintln!(
+                    "VERIFICATION FAILED: Signature does not match document SHA-256 digest ({sha256_hex})"
+                );
+                return Err("cryptographic signature verification failed".to_string());
+            }
+
+            let result_json = serde_json::json!({
+                "valid": true,
+                "document_sha256": sha256_hex,
+                "public_key_hex": raw_pub.trim(),
+                "signer_identity": manifest.as_ref().map(|m| m.signer_identity.as_str()).unwrap_or("standalone"),
+                "timestamp_iso": manifest.as_ref().map(|m| m.timestamp_iso.as_str()).unwrap_or(""),
+                "tamper_evident": true
+            });
+            println!("{}", serde_json::to_string_pretty(&result_json).unwrap());
             Ok(())
         }
 

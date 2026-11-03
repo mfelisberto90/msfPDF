@@ -8,13 +8,19 @@ import { fileURLToPath } from 'node:url';
 import {
   DEFAULT_SECURITY_LIMITS,
   MsfPdfError,
+  embedAuditManifest,
   encodeQr,
+  extractAuditManifest,
   formatMoneyMinor,
+  generateKeyPair,
   pdfEscapeWinAnsi,
   renderDocument,
   renderDocumentJson,
   shapeAndReorderLine,
   shapeArabicLogical,
+  signPdf,
+  verifyManifest,
+  verifyPdf,
 } from '../src/index.ts';
 import { TenantPdfVault } from '../src/vault.ts';
 
@@ -177,4 +183,79 @@ test('enforces pagination DoS ceilings and isolates multi-tenant vault files ato
   } finally {
     await fs.rm(tmpRoot, { recursive: true, force: true });
   }
+});
+
+test('signs and verifies PDF with Ed25519 and audit manifest', () => {
+  const { seed, publicKey, seedHex, publicKeyHex } = generateKeyPair();
+  assert.equal(seed.length, 32);
+  assert.equal(publicKey.length, 32);
+  assert.equal(seedHex.length, 64);
+  assert.equal(publicKeyHex.length, 64);
+
+  const spec = {
+    metadata: {
+      issuer_name: 'Meridian Clearing Ltd',
+      document_code: 'INV-ED25519-TS-01',
+      issued_at_label: '03 Nov 2026',
+    },
+    blocks: [
+      {
+        type: 'hero_header' as const,
+        kicker: 'FINTECH AUDIT SPECIMEN',
+        title: 'Settlement Invoice',
+        subtitle: 'London · Edinburgh · Dubai',
+        badge_label: 'AUDITED',
+        badge_code: '#9042',
+      },
+      {
+        type: 'audit_manifest' as const,
+        signer_identity: 'Meridian Clearing House Ltd (UK-EDINBURGH-01)',
+        public_key_hex: publicKeyHex,
+        algorithm: 'Ed25519',
+        document_sha256: '553ef20b2245c7470c591cc93c724bef793b9894e29167cfe4546304f60ea006',
+        signature_hex: '3a8f'.repeat(32),
+        timestamp_iso: '2026-11-03T12:00:00Z',
+      },
+    ],
+  };
+
+  const pdf = renderDocument(spec);
+  assertValidXrefAnd7BitAscii(pdf);
+
+  // Sign PDF with real Ed25519 keypair
+  const manifest = signPdf(
+    pdf,
+    seed,
+    'Meridian Clearing House Ltd',
+    '2026-11-03T12:00:00Z'
+  );
+
+  assert.equal(manifest.algorithm, 'Ed25519');
+  assert.equal(manifest.document_sha256.length, 64);
+  assert.equal(manifest.public_key_hex.length, 64);
+  assert.equal(manifest.signature_hex.length, 128);
+
+  // Verify valid signature
+  const isValid = verifyManifest(pdf, manifest);
+  assert.ok(isValid, 'signature must verify over authentic PDF bytes');
+  const isDirectValid = verifyPdf(
+    pdf,
+    publicKey,
+    Buffer.from(manifest.signature_hex, 'hex')
+  );
+  assert.ok(isDirectValid, 'direct verifyPdf must pass');
+
+  // Embed manifest in trailer and extract
+  const embeddedPdf = embedAuditManifest(pdf, manifest);
+  assert.ok(embeddedPdf.length > pdf.length);
+  const extracted = extractAuditManifest(embeddedPdf);
+  assert.deepEqual(extracted, manifest);
+  const isEmbeddedValid = verifyManifest(embeddedPdf, extracted!);
+  assert.ok(isEmbeddedValid, 'embedded manifest must verify base PDF');
+
+  // Tamper test: flip a single byte in PDF stream, must fail verification
+  const tamperedPdf = new Uint8Array(embeddedPdf);
+  tamperedPdf[120] ^= 0x01;
+  const isTamperedValid = verifyManifest(tamperedPdf, manifest);
+  assert.ok(!isTamperedValid, 'tampered PDF must fail signature check');
 });

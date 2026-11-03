@@ -136,7 +136,25 @@ export type DocumentBlock =
   | {
       type: 'spacer';
       height_pt: number;
+    }
+  | {
+      type: 'audit_manifest';
+      signer_identity: string;
+      public_key_hex: string;
+      algorithm?: string;
+      document_sha256: string;
+      signature_hex: string;
+      timestamp_iso: string;
     };
+
+export interface AuditManifest {
+  readonly algorithm: string;
+  readonly document_sha256: string;
+  readonly signer_identity: string;
+  readonly public_key_hex: string;
+  readonly signature_hex: string;
+  readonly timestamp_iso: string;
+}
 
 export interface DocumentSpec {
   page_format?: PageFormat;

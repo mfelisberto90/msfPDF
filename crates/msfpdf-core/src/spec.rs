@@ -195,6 +195,19 @@ pub enum DocumentBlock {
     Spacer {
         height_pt: f64,
     },
+    AuditManifest {
+        signer_identity: String,
+        public_key_hex: String,
+        #[serde(default = "default_ed25519")]
+        algorithm: String,
+        document_sha256: String,
+        signature_hex: String,
+        timestamp_iso: String,
+    },
+}
+
+fn default_ed25519() -> String {
+    "Ed25519".to_string()
 }
 
 fn default_bento_cols() -> u8 {

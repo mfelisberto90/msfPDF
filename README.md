@@ -12,6 +12,8 @@
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.80%2B-orange.svg" alt="Rust 1.80+" /></a>
   <a href="./package.json"><img src="https://img.shields.io/badge/typescript-0%20runtime%20deps-3178C6.svg" alt="TypeScript: 0 Deps" /></a>
   <a href="./llms.txt"><img src="https://img.shields.io/badge/AI_discovery-llms.txt_%2B_SKILL.md-10b981.svg" alt="AI Ready: llms.txt + SKILL.md" /></a>
+  <a href="./SECURITY.md"><img src="https://img.shields.io/badge/signatures-Ed25519_%2B_SHA--256-blueviolet.svg" alt="Ed25519 Signatures" /></a>
+  <a href="./PUBLISHING.md"><img src="https://img.shields.io/badge/supply--chain-OIDC_Provenance_SLSA_L2-success.svg" alt="OIDC Provenance SLSA L2" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/licence-MIT-green.svg" alt="Licence: MIT" /></a>
 </p>
 
@@ -177,6 +179,11 @@ const pdfBytes: Uint8Array = renderDocument({
 ./target/release/msfpdf render --in examples/global-multilingual-invoice.json --out multilingual.pdf
 cat examples/pos-thermal-receipt.json | ./target/release/msfpdf render --in - --out receipt.pdf
 
+# Cryptographic Ed25519 key generation, signing, and verification
+./target/release/msfpdf keygen --out keys.json
+./target/release/msfpdf sign --in /tmp/invoice.pdf --key <priv_seed_hex> --identity "Audit Partner" --embed --out /tmp/invoice-signed.pdf
+./target/release/msfpdf verify --in /tmp/invoice-signed.pdf --pubkey <pub_hex>
+
 # Run the single-core latency benchmark
 ./target/release/msfpdf bench --iterations 5000
 ```
@@ -213,6 +220,8 @@ assert!(pdf_bytes.starts_with(b"%PDF-1.4\n"));
 - **PDF Stream-Operator Injection Neutralisation:** Escapes `\`, `(`, `)`, collapses control characters, emits hex-encoded Type 3 glyph IDs, and bans `/JavaScript`, `/OpenAction`, `/Launch`, `/RichMedia`, and `/SubmitForm` in CI (`scripts/security-lint.py`).
 - **Fail-Closed DoS Ceilings (`SecurityLimits`):** Enforces `256 KiB` max input JSON, `500` blocks, `1,000` table rows, and `50` rendered pages.
 - **Multi-Tenant `0600` Vault (`TenantPdfVault`):** Isolates tenants in `0700` directories with `160-bit` CSPRNG capability tokens, `.tmp` (`0600`) + `fsync` + atomic `rename`, and Linux `libc::malloc_trim(0)` arena reclamation.
+- **Ed25519 (RFC 8032) Cryptographic Audit Manifests:** High-speed, tamper-evident signing binding document SHA-256 digests to Ed25519 identities without heavy X.509 PKI dependencies. Trailing `%MsfAuditManifest: {...}\n` trailer comments preserve standard PDF reader `xref` byte offsets.
+- **Tokenless OIDC Trusted Publishing (SLSA L2):** Automated GitHub Actions release pipeline using short-lived OIDC tokens for `npm` (`--provenance`) and `crates.io` with zero static long-lived secrets in repository settings (see [PUBLISHING.md](./PUBLISHING.md)).
 
 ## Running Every CI Gate Locally
 

@@ -90,7 +90,30 @@ pdf_bytes = subprocess.check_output(
 )
 ```
 
+### 4. Cryptographic Ed25519 Signing & Tamper-Evident Manifests
+
+```typescript
+import { generateKeypair, signPdf, verifyPdf, embedAuditManifest, extractAuditManifest } from 'msfpdf/crypto';
+
+// Zero external npm dependencies — uses native Node 22+ crypto:
+const { privateKeySeedHex, publicKeyHex } = generateKeypair();
+const manifest = signPdf(pdfBytes, privateKeySeedHex, 'Caledonia Clearing Authority');
+const signedPdf = embedAuditManifest(pdfBytes, manifest);
+
+// Verify:
+const extracted = extractAuditManifest(signedPdf);
+const valid = verifyPdf(signedPdf, publicKeyHex, extracted.signatureHex); // true
+```
+
+Or via CLI:
+```bash
+msfpdf keygen --out keys.json
+msfpdf sign --in invoice.pdf --key <priv_seed_hex> --identity "Audit Partner" --embed --out invoice-signed.pdf
+msfpdf verify --in invoice-signed.pdf --pubkey <pub_hex>
+```
+
 ## Critical Rules When Generating `DocumentSpec` Payloads
 1. **Never pass floats for money:** `amount_minor` in `financial_summary` and `formatMoneyMinor(minorUnits, currency)` require exact integers (`1999` for `£19.99`, `1942500` for `AED 19,425.00`). Passing `19.99` throws `MsfPdfError('INVALID_SPEC')`.
 2. **Write Arabic in normal logical UTF-8 order:** Do **not** pre-reverse Arabic strings or manually substitute `U+FE80` presentation forms — `msfPDF` automatically performs contextual shaping, `Lam-Alef` ligature substitution, and UAX #9 BiDi visual reordering while keeping embedded numbers (`2026`, `19,425.00`) Left-to-Right.
 3. **Validate against JSON Schema:** Use [`schemas/document-spec.schema.json`](../../schemas/document-spec.schema.json) for LLM Structured Outputs.
+4. **Cryptographic Integrity:** Use `audit_manifest` block or `msfpdf sign --embed` to append an Ed25519 signature in trailing comments without invalidating standard PDF viewers or `xref` offsets.

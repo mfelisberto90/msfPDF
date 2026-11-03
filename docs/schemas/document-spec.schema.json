@@ -258,6 +258,27 @@
         },
         {
           "type": "object",
+          "required": ["type", "manifest"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "audit_manifest" },
+            "manifest": {
+              "type": "object",
+              "required": ["algorithm", "document_sha256", "signer_identity", "public_key_hex", "signature_hex", "timestamp_iso"],
+              "additionalProperties": false,
+              "properties": {
+                "algorithm": { "type": "string", "enum": ["Ed25519"] },
+                "document_sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+                "signer_identity": { "type": "string", "minLength": 1 },
+                "public_key_hex": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+                "signature_hex": { "type": "string", "pattern": "^[0-9a-fA-F]{128}$" },
+                "timestamp_iso": { "type": "string" }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
           "required": ["type", "height_pt"],
           "additionalProperties": false,
           "properties": {
