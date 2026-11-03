@@ -1,4 +1,5 @@
 pub mod canvas;
+pub mod crypto;
 pub mod encoding;
 pub mod error;
 pub mod geometry;
@@ -10,6 +11,12 @@ pub mod renderer;
 pub mod shaping;
 pub mod spec;
 pub mod vault;
+
+pub use crypto::{
+    compute_sha256_hex, decode_hex_exact, embed_audit_manifest, extract_audit_manifest,
+    generate_keypair, hex_encode, sign_pdf, strip_embedded_audit, verify_manifest, verify_pdf,
+    AuditManifest,
+};
 
 pub use encoding::{
     estimate_font_width_pt, pdf_escape_win_ansi, truncate_to_width_pt, wrap_text_to_width_pt,
@@ -364,5 +371,82 @@ mod tests {
         assert!(vault.read_document("tenant_alpha_01", "00001").is_err());
 
         let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
+    #[test]
+    fn signs_and_verifies_pdf_with_ed25519_and_audit_manifest() {
+        let (seed, pubkey) = generate_keypair().expect("generates valid keypair");
+        assert_eq!(seed.len(), 32);
+        assert_eq!(pubkey.len(), 32);
+
+        let spec = DocumentSpec {
+            page_format: PageFormat::A4,
+            theme: ThemePreset::NavyFintech,
+            accent_hex_override: None,
+            metadata: DocumentMetadata {
+                issuer_name: "Meridian Clearing Ltd".into(),
+                document_code: "INV-ED25519-01".into(),
+                issued_at_label: "03 Nov 2026".into(),
+                footer_notice: None,
+                page_counter_template: "Page {current} of {total}".into(),
+            },
+            continuation_header: None,
+            blocks: vec![
+                DocumentBlock::HeroHeader {
+                    kicker: "FINTECH AUDIT SPECIMEN".into(),
+                    title: "Settlement Invoice".into(),
+                    subtitle: "Edinburgh, Scotland, UK".into(),
+                    badge_label: Some("AUDITED".into()),
+                    badge_code: Some("#9042".into()),
+                    badge_meta: None,
+                    logo_jpeg_base64: None,
+                },
+                DocumentBlock::AuditManifest {
+                    signer_identity: "Meridian Clearing House Ltd (UK-EDINBURGH-01)".into(),
+                    public_key_hex: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".into(),
+                    algorithm: "Ed25519".into(),
+                    document_sha256: "553ef20b2245c7470c591cc93c724bef793b9894e29167cfe4546304f60ea006".into(),
+                    signature_hex: "3a8f1234567890abcdef3a8f1234567890abcdef3a8f1234567890abcdef3a8f1234567890abcdef3a8f1234567890abcdef3a8f1234567890abcdef3a8f1234567890abcdef".into(),
+                    timestamp_iso: "2026-11-03T12:00:00Z".into(),
+                },
+            ],
+        };
+
+        let pdf = render_document(&spec, SecurityLimits::default()).expect("renders signed spec");
+        assert_valid_xref_and_7bit_ascii(&pdf);
+
+        // Sign PDF with real Ed25519 keypair
+        let manifest = sign_pdf(
+            &pdf,
+            &seed,
+            "Meridian Clearing House Ltd",
+            Some("2026-11-03T12:00:00Z"),
+        )
+        .expect("signs pdf");
+
+        assert_eq!(manifest.algorithm, "Ed25519");
+        assert_eq!(manifest.document_sha256.len(), 64);
+        assert_eq!(manifest.public_key_hex.len(), 64);
+        assert_eq!(manifest.signature_hex.len(), 128);
+
+        // Verify valid signature
+        let is_valid = verify_manifest(&pdf, &manifest).expect("verifies manifest");
+        assert!(is_valid, "signature must verify over authentic PDF bytes");
+
+        // Embed manifest in trailer and extract
+        let embedded_pdf = embed_audit_manifest(&pdf, &manifest);
+        assert!(embedded_pdf.starts_with(b"%PDF-1.4\n"));
+        let extracted = extract_audit_manifest(&embedded_pdf).expect("extracts embedded manifest");
+        assert_eq!(extracted, manifest);
+        let is_embedded_valid =
+            verify_manifest(&embedded_pdf, &extracted).expect("verifies embedded manifest");
+        assert!(is_embedded_valid, "embedded manifest must verify base PDF");
+
+        // Tamper test: flip a single byte in PDF stream, must fail verification
+        let mut tampered_pdf = embedded_pdf.clone();
+        tampered_pdf[120] ^= 0x01;
+        let is_tampered_valid =
+            verify_manifest(&tampered_pdf, &manifest).expect("verifies tampered");
+        assert!(!is_tampered_valid, "tampered PDF must fail signature check");
     }
 }

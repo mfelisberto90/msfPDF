@@ -107,6 +107,17 @@ const issued = await vault.issueDocument('tenant_dubai_01', {
 });
 // Read back strictly scoped to owning tenant (cross-tenant IDs & '../' fail closed):
 const verifiedBytes = await vault.readDocument('tenant_dubai_01', issued.token);
+
+// Cryptographic signing & verification (Ed25519 / RFC 8032 with zero external deps):
+import { generateKeypair, signPdf, verifyPdf, embedAuditManifest, extractAuditManifest } from 'msfpdf/crypto';
+
+const { privateKeySeedHex, publicKeyHex } = generateKeypair();
+const manifest = signPdf(pdfBytes, privateKeySeedHex, 'Caledonia Compliance Authority');
+const signedPdf = embedAuditManifest(pdfBytes, manifest);
+
+// Verify signed PDF (tamper-evident):
+const extracted = extractAuditManifest(signedPdf);
+const isValid = verifyPdf(signedPdf, publicKeyHex, extracted.signatureHex); // true
 ```
 
 ---
@@ -114,12 +125,21 @@ const verifiedBytes = await vault.readDocument('tenant_dubai_01', issued.token);
 ## 4. Rust API (`msfpdf-core`)
 
 ```rust
-use msfpdf_core::{format_money_minor, render_document_json, Currency, SecurityLimits, TenantPdfVault};
+use msfpdf_core::{
+    format_money_minor, generate_keypair, render_document_json, sign_pdf, verify_pdf,
+    AuditManifest, Currency, SecurityLimits, TenantPdfVault,
+};
 
 fn example(raw_json: &[u8]) -> Result<Vec<u8>, msfpdf_core::PdfError> {
     assert_eq!(format_money_minor(45_000_050, Currency::RUB), "450 000,50 ₽");
     assert_eq!(format_money_minor(1_942_500, Currency::AED), "AED 19,425.00");
-    render_document_json(raw_json, SecurityLimits::default())
+    let pdf = render_document_json(raw_json, SecurityLimits::default())?;
+
+    // Ed25519 signing:
+    let (seed, pubkey) = generate_keypair()?;
+    let manifest = sign_pdf(&pdf, &seed, "Treasury Validator", None)?;
+    assert!(verify_pdf(&pdf, &pubkey, &manifest.signature_hex.as_bytes()[..64].try_into().unwrap_or([0; 64]))?);
+    Ok(pdf)
 }
 ```
 
@@ -128,14 +148,25 @@ fn example(raw_json: &[u8]) -> Result<Vec<u8>, msfpdf_core::PdfError> {
 ## 5. Standalone CLI (`msfpdf` — `< 1 MB` Release Binary)
 
 ```bash
-./scripts/build-release.sh -p msfpdf-cli
+cargo build --release -p msfpdf-cli
 
 # Compile file or stdin -> stdout for Python / PHP / Go / Ruby backends:
 ./target/release/msfpdf render --in examples/global-multilingual-invoice.json --out multilingual.pdf
 cat examples/uk-b2b-invoice.json | ./target/release/msfpdf render --in - --out invoice.pdf
 
 # Issue into atomic 0600 multi-tenant vault:
-./target/release/msfpdf vault-issue --vault-dir ./.vault --prefix inv --tenant tenant_uk_01 --in examples/uk-b2b-invoice.json
+./target/release/msfpdf vault-issue --vault ./.vault --prefix inv --tenant tenant_uk_01 --in examples/uk-b2b-invoice.json
+
+# Cryptographic Ed25519 key generation, signing, and verification:
+./target/release/msfpdf keygen --out keys.json
+SEED=$(jq -r .private_key_seed_hex keys.json)
+PUB=$(jq -r .public_key_hex keys.json)
+
+# Sign with embedded %MsfAuditManifest trailer:
+./target/release/msfpdf sign --in invoice.pdf --key "$SEED" --identity "Audit Partner" --embed --out invoice-signed.pdf
+
+# Verify integrity and tamper detection:
+./target/release/msfpdf verify --in invoice-signed.pdf --pubkey "$PUB"
 
 # Run single-core latency benchmark:
 ./target/release/msfpdf bench --iterations 5000
@@ -162,8 +193,9 @@ Top-level `DocumentSpec` properties:
   8. `qr_verification`: `{ payload, headline, details, code_display? }`.
   9. `signature_grid`: `{ heading?, signers: [{ role_label, party_name }] }`.
   10. `key_value_list`: `{ rows: [{ label, value, emphasize? }], dashed_dividers?: boolean }`.
-  11. `divider`: `{}`.
-  12. `spacer`: `{ height_pt: 2..200 }`.
+  11. `audit_manifest`: `{ manifest: { algorithm: 'Ed25519', document_sha256, signer_identity, public_key_hex, signature_hex, timestamp_iso } }` (renders institutional cryptographic audit seal with SHA-256 and Ed25519 badges).
+  12. `divider`: `{}`.
+  13. `spacer`: `{ height_pt: 2..200 }`.
 
 ---
 

@@ -37,7 +37,12 @@
   "type": "module",
   "exports": {
     ".": "./packages/ts/src/index.ts",
-    "./vault": "./packages/ts/src/vault.ts"
+    "./vault": "./packages/ts/src/vault.ts",
+    "./crypto": "./packages/ts/src/crypto.ts"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "engines": {
     "node": ">=22.6.0"

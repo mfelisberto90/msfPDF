@@ -15,10 +15,21 @@ export {
   shapeArabicLogical,
 } from './shaping.ts';
 export {
+  computeSha256Hex,
+  embedAuditManifest,
+  extractAuditManifest,
+  generateKeyPair,
+  signPdf,
+  stripEmbeddedAudit,
+  verifyManifest,
+  verifyPdf,
+} from './crypto.ts';
+export {
   DEFAULT_SECURITY_LIMITS,
   MsfPdfError,
 } from './types.ts';
 export type {
+  AuditManifest,
   BannerTone,
   BentoCardItem,
   ContinuationHeaderSpec,

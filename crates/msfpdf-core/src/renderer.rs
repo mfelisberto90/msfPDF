@@ -1032,6 +1032,215 @@ impl<'a> FlowEngine<'a> {
                 self.ensure_space(h)?;
                 self.cursor_y += h;
             }
+
+            DocumentBlock::AuditManifest {
+                signer_identity,
+                public_key_hex,
+                algorithm,
+                document_sha256,
+                signature_hex,
+                timestamp_iso,
+            } => {
+                let is_thermal = self.spec.page_format == PageFormat::Thermal80mm;
+                let pal = self.palette;
+                let mx = self.margin_x;
+                let cw = self.content_w;
+
+                if is_thermal {
+                    let box_h = 74.0;
+                    self.ensure_space(box_h)?;
+                    let cy = self.cursor_y;
+                    let p = self.current_page();
+                    p.fill_and_stroke_rect(mx, cy, cw, box_h, pal.card_bg, 0.6, pal.border);
+                    p.text(
+                        "CRYPTOGRAPHIC AUDIT MANIFEST",
+                        mx + 6.0,
+                        cy + 11.0,
+                        FontFace::Bold,
+                        6.8,
+                        pal.ink_strong,
+                    );
+                    p.line(
+                        mx + 6.0,
+                        cy + 15.0,
+                        mx + cw - 6.0,
+                        cy + 15.0,
+                        0.4,
+                        pal.border,
+                    );
+                    p.text(
+                        &truncate_to_width_pt(
+                            &format!("Signer: {signer_identity}"),
+                            FontFace::Regular,
+                            6.2,
+                            cw - 12.0,
+                        ),
+                        mx + 6.0,
+                        cy + 25.0,
+                        FontFace::Regular,
+                        6.2,
+                        pal.ink_body,
+                    );
+                    p.text(
+                        &truncate_to_width_pt(
+                            &format!("SHA-256: {document_sha256}"),
+                            FontFace::Mono,
+                            5.8,
+                            cw - 12.0,
+                        ),
+                        mx + 6.0,
+                        cy + 36.0,
+                        FontFace::Mono,
+                        5.8,
+                        pal.ink_muted,
+                    );
+                    p.text(
+                        &truncate_to_width_pt(
+                            &format!("Key: {public_key_hex}"),
+                            FontFace::Mono,
+                            5.8,
+                            cw - 12.0,
+                        ),
+                        mx + 6.0,
+                        cy + 47.0,
+                        FontFace::Mono,
+                        5.8,
+                        pal.ink_muted,
+                    );
+                    let sig_short = if signature_hex.len() > 32 {
+                        format!("Sig: {}...", &signature_hex[..32])
+                    } else {
+                        format!("Sig: {signature_hex}")
+                    };
+                    p.text(
+                        &truncate_to_width_pt(&sig_short, FontFace::Mono, 5.8, cw - 12.0),
+                        mx + 6.0,
+                        cy + 58.0,
+                        FontFace::Mono,
+                        5.8,
+                        pal.ink_muted,
+                    );
+                    p.text(
+                        &truncate_to_width_pt(
+                            &format!("{algorithm} · {timestamp_iso}"),
+                            FontFace::Regular,
+                            5.8,
+                            cw - 12.0,
+                        ),
+                        mx + 6.0,
+                        cy + 68.0,
+                        FontFace::Regular,
+                        5.8,
+                        pal.ink_muted,
+                    );
+                    self.cursor_y += box_h + 8.0;
+                } else {
+                    let box_h = 58.0;
+                    self.ensure_space(box_h)?;
+                    let cy = self.cursor_y;
+                    let p = self.current_page();
+                    p.fill_and_stroke_rect(mx, cy, cw, box_h, pal.card_bg, 0.6, pal.border);
+
+                    // Header row
+                    p.text(
+                        "CRYPTOGRAPHIC AUDIT MANIFEST",
+                        mx + 10.0,
+                        cy + 13.0,
+                        FontFace::Bold,
+                        7.4,
+                        pal.ink_strong,
+                    );
+                    p.text_right(
+                        &format!("ALGORITHM: {algorithm}"),
+                        mx + cw - 10.0,
+                        cy + 13.0,
+                        FontFace::Bold,
+                        7.0,
+                        pal.accent,
+                    );
+                    p.line(
+                        mx + 10.0,
+                        cy + 18.0,
+                        mx + cw - 10.0,
+                        cy + 18.0,
+                        0.4,
+                        pal.border,
+                    );
+
+                    // Line 1: Signer & Timestamp
+                    p.text(
+                        &truncate_to_width_pt(
+                            &format!("Signer: {signer_identity}"),
+                            FontFace::Bold,
+                            6.8,
+                            cw * 0.65,
+                        ),
+                        mx + 10.0,
+                        cy + 28.5,
+                        FontFace::Bold,
+                        6.8,
+                        pal.ink_body,
+                    );
+                    p.text_right(
+                        &truncate_to_width_pt(timestamp_iso, FontFace::Regular, 6.8, cw * 0.3),
+                        mx + cw - 10.0,
+                        cy + 28.5,
+                        FontFace::Regular,
+                        6.8,
+                        pal.ink_muted,
+                    );
+
+                    // Line 2: Document SHA-256
+                    p.text(
+                        &truncate_to_width_pt(
+                            &format!("Doc SHA-256: {document_sha256}"),
+                            FontFace::Mono,
+                            6.5,
+                            cw - 20.0,
+                        ),
+                        mx + 10.0,
+                        cy + 38.5,
+                        FontFace::Mono,
+                        6.5,
+                        pal.ink_strong,
+                    );
+
+                    // Line 3: Public Key & Signature
+                    let sig_preview = if signature_hex.len() > 36 {
+                        format!("{}...", &signature_hex[..36])
+                    } else {
+                        signature_hex.clone()
+                    };
+                    p.text(
+                        &truncate_to_width_pt(
+                            &format!("Ed25519 PubKey: {public_key_hex}"),
+                            FontFace::Mono,
+                            6.3,
+                            cw * 0.55,
+                        ),
+                        mx + 10.0,
+                        cy + 48.5,
+                        FontFace::Mono,
+                        6.3,
+                        pal.ink_muted,
+                    );
+                    p.text_right(
+                        &truncate_to_width_pt(
+                            &format!("Sig: {sig_preview}"),
+                            FontFace::Mono,
+                            6.3,
+                            cw * 0.42,
+                        ),
+                        mx + cw - 10.0,
+                        cy + 48.5,
+                        FontFace::Mono,
+                        6.3,
+                        pal.ink_muted,
+                    );
+
+                    self.cursor_y += box_h + 8.0;
+                }
+            }
         }
 
         Ok(())
